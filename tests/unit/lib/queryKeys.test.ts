@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   campaignKeys,
+  dashboardKeys,
   interactionKeys,
   invitationKeys,
   memberKeys,
@@ -34,6 +35,9 @@ describe("query keys", () => {
       sort: "updated_desc",
       page: 1,
       pageSize: 20,
+      productInterest: null,
+      sourceCampaign: null,
+      hasOpenDeal: null,
     }).queryKey;
     expect(key).toContain("organization_id:org-people");
   });
@@ -87,5 +91,56 @@ describe("query keys", () => {
     const key = campaignKeys.byPerson("org-1", "person-1").queryKey;
     expect(key).toContain("person_id:person-1");
     expect(key).toContain("campaign-memberships");
+  });
+
+  it("includes organization_id in campaign options keys", () => {
+    const key = campaignKeys.options("org-opts").queryKey;
+    expect(key).toContain("organization_id:org-opts");
+    expect(key).toContain("options");
+  });
+
+  it("includes organization_id in dashboard followUps keys", () => {
+    const key = dashboardKeys.followUps("org-dash").queryKey;
+    expect(key).toContain("organization_id:org-dash");
+    expect(key).toContain("followUps");
+  });
+
+  it("includes threshold in dashboard staleDeals keys", () => {
+    const key = dashboardKeys.staleDeals("org-dash", 14).queryKey;
+    expect(key).toContain("organization_id:org-dash");
+    expect(key).toContain("threshold:14");
+  });
+
+  it("includes organization_id in dashboard pipeline keys", () => {
+    const key = dashboardKeys.pipeline("org-dash").queryKey;
+    expect(key).toContain("organization_id:org-dash");
+    expect(key).toContain("pipeline");
+  });
+
+  it("includes organization_id in dashboard topProducts keys", () => {
+    const key = dashboardKeys.topProducts("org-dash").queryKey;
+    expect(key).toContain("organization_id:org-dash");
+    expect(key).toContain("topProducts");
+  });
+
+  it("includes organization_id in dashboard topCampaigns keys", () => {
+    const key = dashboardKeys.topCampaigns("org-dash").queryKey;
+    expect(key).toContain("organization_id:org-dash");
+    expect(key).toContain("topCampaigns");
+  });
+
+  it("includes derived filter params in people list keys", () => {
+    const key = peopleKeys.list("org-derived", {
+      search: "",
+      lifecycle: "all",
+      archiveFilter: "active",
+      sort: "updated_desc",
+      page: 1,
+      pageSize: 20,
+      productInterest: "prod-1",
+      sourceCampaign: "camp-1",
+      hasOpenDeal: true,
+    }).queryKey;
+    expect(key).toContain("organization_id:org-derived");
   });
 });

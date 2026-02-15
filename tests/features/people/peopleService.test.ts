@@ -55,6 +55,9 @@ describe("peopleService", () => {
       sort: "updated_desc",
       page: 1,
       pageSize: 20,
+      productInterest: null,
+      sourceCampaign: null,
+      hasOpenDeal: null,
     });
 
     expect(result.error).toBeNull();

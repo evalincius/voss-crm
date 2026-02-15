@@ -14,6 +14,9 @@ export interface PeopleListParams {
   sort: PeopleSort;
   page: number;
   pageSize: number;
+  productInterest: string | null;
+  sourceCampaign: string | null;
+  hasOpenDeal: boolean | null;
 }
 
 export interface PaginatedPeopleResult {

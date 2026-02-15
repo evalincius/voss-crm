@@ -31,6 +31,9 @@ export const peopleKeys = createQueryKeys("people", {
       sort: string;
       page: number;
       pageSize: number;
+      productInterest: string | null;
+      sourceCampaign: string | null;
+      hasOpenDeal: boolean | null;
     },
   ) => [`organization_id:${organizationId}`, params],
   detail: (organizationId: string, personId: string) => [
@@ -101,6 +104,7 @@ export const templateKeys = createQueryKeys("templates", {
 
 export const campaignKeys = createQueryKeys("campaigns", {
   listRoot: (organizationId: string) => [`organization_id:${organizationId}`],
+  options: (organizationId: string) => [`organization_id:${organizationId}`, "options"],
   list: (
     organizationId: string,
     params: {
@@ -139,6 +143,18 @@ export const campaignKeys = createQueryKeys("campaigns", {
     `person_id:${personId}`,
     "campaign-memberships",
   ],
+});
+
+export const dashboardKeys = createQueryKeys("dashboard", {
+  followUps: (organizationId: string) => [`organization_id:${organizationId}`, "followUps"],
+  staleDeals: (organizationId: string, threshold: number) => [
+    `organization_id:${organizationId}`,
+    "staleDeals",
+    `threshold:${threshold}`,
+  ],
+  pipeline: (organizationId: string) => [`organization_id:${organizationId}`, "pipeline"],
+  topProducts: (organizationId: string) => [`organization_id:${organizationId}`, "topProducts"],
+  topCampaigns: (organizationId: string) => [`organization_id:${organizationId}`, "topCampaigns"],
 });
 
 export const dealKeys = createQueryKeys("deals", {
@@ -181,5 +197,6 @@ export const queryKeys = mergeQueryKeys(
   productKeys,
   templateKeys,
   campaignKeys,
+  dashboardKeys,
   dealKeys,
 );

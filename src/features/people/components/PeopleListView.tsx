@@ -121,6 +121,12 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
 
+  const productInterest = searchParams.get("product_interest") || null;
+  const sourceCampaign = searchParams.get("source_campaign") || null;
+  const hasOpenDealParam = searchParams.get("has_open_deal");
+  const hasOpenDeal: boolean | null =
+    hasOpenDealParam === "yes" ? true : hasOpenDealParam === "no" ? false : null;
+
   const peopleParams = useMemo(
     () => ({
       organizationId,
@@ -130,8 +136,22 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
       sort,
       page,
       pageSize,
+      productInterest,
+      sourceCampaign,
+      hasOpenDeal,
     }),
-    [organizationId, search, lifecycle, archiveFilter, sort, page, pageSize],
+    [
+      organizationId,
+      search,
+      lifecycle,
+      archiveFilter,
+      sort,
+      page,
+      pageSize,
+      productInterest,
+      sourceCampaign,
+      hasOpenDeal,
+    ],
   );
 
   const peopleQuery = usePeopleList(peopleParams);
@@ -147,6 +167,9 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
       archive: PeopleArchiveFilter;
       sort: PeopleSort;
       page: number;
+      product_interest: string | null;
+      source_campaign: string | null;
+      has_open_deal: boolean | null;
     }>,
   ) {
     const next = new URLSearchParams(searchParams);
@@ -193,6 +216,30 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
         next.delete("page");
       } else {
         next.set("page", String(value));
+      }
+    }
+
+    if ("product_interest" in updates) {
+      if (updates.product_interest === null) {
+        next.delete("product_interest");
+      } else {
+        next.set("product_interest", updates.product_interest);
+      }
+    }
+
+    if ("source_campaign" in updates) {
+      if (updates.source_campaign === null) {
+        next.delete("source_campaign");
+      } else {
+        next.set("source_campaign", updates.source_campaign);
+      }
+    }
+
+    if ("has_open_deal" in updates) {
+      if (updates.has_open_deal === null) {
+        next.delete("has_open_deal");
+      } else {
+        next.set("has_open_deal", updates.has_open_deal ? "yes" : "no");
       }
     }
 
@@ -299,10 +346,14 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
       ) : null}
 
       <PeopleFilters
+        organizationId={organizationId}
         search={search}
         lifecycle={lifecycle}
         archiveFilter={archiveFilter}
         sort={sort}
+        productInterest={productInterest}
+        sourceCampaign={sourceCampaign}
+        hasOpenDeal={hasOpenDeal}
         onSearchChange={(value) => {
           updateFilters({ q: value, page: 1 });
         }}
@@ -314,6 +365,15 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
         }}
         onSortChange={(value) => {
           updateFilters({ sort: value, page: 1 });
+        }}
+        onProductInterestChange={(value) => {
+          updateFilters({ product_interest: value, page: 1 });
+        }}
+        onSourceCampaignChange={(value) => {
+          updateFilters({ source_campaign: value, page: 1 });
+        }}
+        onHasOpenDealChange={(value) => {
+          updateFilters({ has_open_deal: value, page: 1 });
         }}
         onReset={() => {
           setSearchParams({}, { replace: true });

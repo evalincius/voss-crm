@@ -9,44 +9,83 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { personLifecycleValues } from "@/features/people/schemas/people.schema";
+import { useProductOptions } from "@/features/library/products/hooks/useProducts";
+import { useCampaignOptions } from "@/features/campaigns/hooks/useCampaigns";
 import type { PeopleArchiveFilter, PeopleSort } from "@/features/people/types";
 
 interface PeopleFiltersProps {
+  organizationId: string;
   search: string;
   lifecycle: "all" | (typeof personLifecycleValues)[number];
   archiveFilter: PeopleArchiveFilter;
   sort: PeopleSort;
+  productInterest: string | null;
+  sourceCampaign: string | null;
+  hasOpenDeal: boolean | null;
   onSearchChange: (value: string) => void;
   onLifecycleChange: (value: "all" | (typeof personLifecycleValues)[number]) => void;
   onArchiveFilterChange: (value: PeopleArchiveFilter) => void;
   onSortChange: (value: PeopleSort) => void;
+  onProductInterestChange: (value: string | null) => void;
+  onSourceCampaignChange: (value: string | null) => void;
+  onHasOpenDealChange: (value: boolean | null) => void;
   onReset: () => void;
 }
 
 export function PeopleFilters({
+  organizationId,
   search,
   lifecycle,
   archiveFilter,
   sort,
+  productInterest,
+  sourceCampaign,
+  hasOpenDeal,
   onSearchChange,
   onLifecycleChange,
   onArchiveFilterChange,
   onSortChange,
+  onProductInterestChange,
+  onSourceCampaignChange,
+  onHasOpenDealChange,
   onReset,
 }: PeopleFiltersProps) {
+  const productOptionsQuery = useProductOptions(organizationId);
+  const campaignOptionsQuery = useCampaignOptions(organizationId);
+
   const hasSearch = search.trim().length > 0;
   const hasLifecycleFilter = lifecycle !== "all";
   const hasArchiveFilter = archiveFilter !== "active";
   const hasSortFilter = sort !== "updated_desc";
-  const activeFilterCount = [hasSearch, hasLifecycleFilter, hasArchiveFilter, hasSortFilter].filter(
-    Boolean,
-  ).length;
+  const hasProductFilter = productInterest !== null;
+  const hasCampaignFilter = sourceCampaign !== null;
+  const hasOpenDealFilter = hasOpenDeal !== null;
+  const activeFilterCount = [
+    hasSearch,
+    hasLifecycleFilter,
+    hasArchiveFilter,
+    hasSortFilter,
+    hasProductFilter,
+    hasCampaignFilter,
+    hasOpenDealFilter,
+  ].filter(Boolean).length;
 
   const activeFilterLabels: string[] = [];
   if (hasSearch) activeFilterLabels.push("Search");
   if (hasLifecycleFilter) activeFilterLabels.push(`Lifecycle: ${lifecycle}`);
   if (hasArchiveFilter) activeFilterLabels.push(`Visibility: ${archiveFilter}`);
   if (hasSortFilter) activeFilterLabels.push("Custom sort");
+  if (hasProductFilter) {
+    const name = productOptionsQuery.data?.find((p) => p.id === productInterest)?.name;
+    activeFilterLabels.push(`Product: ${name ?? "..."}`);
+  }
+  if (hasCampaignFilter) {
+    const name = campaignOptionsQuery.data?.find((c) => c.id === sourceCampaign)?.name;
+    activeFilterLabels.push(`Campaign: ${name ?? "..."}`);
+  }
+  if (hasOpenDealFilter) {
+    activeFilterLabels.push(`Open deal: ${hasOpenDeal ? "Yes" : "No"}`);
+  }
 
   return (
     <div className="card-surface bg-bg-surface space-y-3 p-4">
@@ -135,6 +174,67 @@ export function PeopleFilters({
               <SelectItem value="updated_desc">Recently updated</SelectItem>
               <SelectItem value="created_desc">Newest</SelectItem>
               <SelectItem value="name_asc">Name A-Z</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={productInterest ?? "all"}
+            onValueChange={(value) => onProductInterestChange(value === "all" ? null : value)}
+          >
+            <SelectTrigger
+              aria-label="Filter by product interest"
+              className="bg-bg-app border-border-fintech h-10 w-full text-base sm:w-[180px]"
+            >
+              <SelectValue placeholder="Product interest" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All products</SelectItem>
+              {(productOptionsQuery.data ?? []).map((product) => (
+                <SelectItem key={product.id} value={product.id}>
+                  {product.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={sourceCampaign ?? "all"}
+            onValueChange={(value) => onSourceCampaignChange(value === "all" ? null : value)}
+          >
+            <SelectTrigger
+              aria-label="Filter by source campaign"
+              className="bg-bg-app border-border-fintech h-10 w-full text-base sm:w-[180px]"
+            >
+              <SelectValue placeholder="Source campaign" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All campaigns</SelectItem>
+              {(campaignOptionsQuery.data ?? []).map((campaign) => (
+                <SelectItem key={campaign.id} value={campaign.id}>
+                  {campaign.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={hasOpenDeal === null ? "any" : hasOpenDeal ? "yes" : "no"}
+            onValueChange={(value) => {
+              if (value === "any") onHasOpenDealChange(null);
+              else if (value === "yes") onHasOpenDealChange(true);
+              else onHasOpenDealChange(false);
+            }}
+          >
+            <SelectTrigger
+              aria-label="Filter by open deal"
+              className="bg-bg-app border-border-fintech h-10 w-full text-base sm:w-[170px]"
+            >
+              <SelectValue placeholder="Has open deal" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="any">Any deal status</SelectItem>
+              <SelectItem value="yes">Has open deal</SelectItem>
+              <SelectItem value="no">No open deal</SelectItem>
             </SelectContent>
           </Select>
         </div>

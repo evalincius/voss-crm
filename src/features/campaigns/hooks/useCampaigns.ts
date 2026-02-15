@@ -9,6 +9,7 @@ import {
   getCampaignMetrics,
   getPersonCampaignMemberships,
   listCampaignMembers,
+  listCampaignOptions,
   listCampaigns,
   removePersonFromCampaign,
   syncCampaignProducts,
@@ -202,6 +203,27 @@ export function usePersonCampaignMemberships(
       return result.data;
     },
     enabled: !!organizationId && !!personId,
+  });
+}
+
+export function useCampaignOptions(organizationId: string | null) {
+  return useQuery({
+    queryKey: organizationId
+      ? campaignKeys.options(organizationId).queryKey
+      : (["campaigns", "options", "disabled"] satisfies QueryKey),
+    queryFn: async () => {
+      if (!organizationId) {
+        throw new Error("Organization is required");
+      }
+
+      const result = await listCampaignOptions(organizationId);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to load campaign options");
+      }
+
+      return result.data;
+    },
+    enabled: !!organizationId,
   });
 }
 

@@ -41,6 +41,9 @@ export function usePeopleList(params: PeopleListParams | null) {
           sort: params.sort,
           page: params.page,
           pageSize: params.pageSize,
+          productInterest: params.productInterest,
+          sourceCampaign: params.sourceCampaign,
+          hasOpenDeal: params.hasOpenDeal,
         }).queryKey
       : ["people", "disabled"],
     queryFn: async () => {

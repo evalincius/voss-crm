@@ -26,7 +26,11 @@ const quickAddOptions: QuickAddOption[] = [
   { label: "Interaction", intent: QUICK_ADD_INTENTS.INTERACTION, to: ROUTES.PEOPLE },
   { label: "Deal", intent: QUICK_ADD_INTENTS.DEAL, to: ROUTES.DEALS },
   { label: "Campaign", intent: QUICK_ADD_INTENTS.CAMPAIGN, to: ROUTES.CAMPAIGNS },
-  { label: "Template", intent: QUICK_ADD_INTENTS.TEMPLATE, to: ROUTES.LIBRARY_TEMPLATES },
+  {
+    label: "Template",
+    intent: QUICK_ADD_INTENTS.TEMPLATE,
+    to: `${ROUTES.LIBRARY}?tab=templates`,
+  },
 ];
 
 export function QuickAddMenu() {

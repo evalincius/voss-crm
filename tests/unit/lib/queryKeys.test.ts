@@ -5,6 +5,8 @@ import {
   memberKeys,
   organizationKeys,
   peopleKeys,
+  productKeys,
+  templateKeys,
 } from "@/lib/queryKeys";
 
 describe("query keys", () => {
@@ -38,5 +40,24 @@ describe("query keys", () => {
   it("includes organization_id in interaction keys", () => {
     const key = interactionKeys.byPerson("org-i", "person-1").queryKey;
     expect(key).toContain("organization_id:org-i");
+  });
+
+  it("includes organization_id in product list keys", () => {
+    const key = productKeys.list("org-products", {
+      search: "",
+      archiveFilter: "active",
+      sort: "updated_desc",
+    }).queryKey;
+    expect(key).toContain("organization_id:org-products");
+  });
+
+  it("includes organization_id in template list keys", () => {
+    const key = templateKeys.list("org-templates", {
+      search: "",
+      statusFilter: "active",
+      sort: "updated_desc",
+      productId: null,
+    }).queryKey;
+    expect(key).toContain("organization_id:org-templates");
   });
 });

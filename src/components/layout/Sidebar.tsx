@@ -41,9 +41,9 @@ const navItems: SidebarNavItem[] = [
   },
   {
     title: "Library",
-    href: ROUTES.LIBRARY_PRODUCTS,
+    href: ROUTES.LIBRARY,
     icon: Library,
-    matchPrefixes: [ROUTES.LIBRARY_PRODUCTS, ROUTES.LIBRARY_TEMPLATES],
+    matchPrefixes: [ROUTES.LIBRARY, ROUTES.LIBRARY_PRODUCTS, ROUTES.LIBRARY_TEMPLATES],
   },
 ];
 

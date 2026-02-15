@@ -46,6 +46,59 @@ export const interactionKeys = createQueryKeys("interactions", {
   ],
 });
 
+export const productKeys = createQueryKeys("products", {
+  listRoot: (organizationId: string) => [`organization_id:${organizationId}`],
+  list: (
+    organizationId: string,
+    params: {
+      search: string;
+      archiveFilter: string;
+      sort: string;
+    },
+  ) => [`organization_id:${organizationId}`, params],
+  options: (organizationId: string) => [`organization_id:${organizationId}`, "options"],
+  detail: (organizationId: string, productId: string) => [
+    `organization_id:${organizationId}`,
+    `product_id:${productId}`,
+  ],
+  performance: (organizationId: string, productId: string) => [
+    `organization_id:${organizationId}`,
+    `product_id:${productId}`,
+    "performance",
+  ],
+});
+
+export const templateKeys = createQueryKeys("templates", {
+  listRoot: (organizationId: string) => [`organization_id:${organizationId}`],
+  list: (
+    organizationId: string,
+    params: {
+      search: string;
+      statusFilter: string;
+      sort: string;
+      productId: string | null;
+    },
+  ) => [`organization_id:${organizationId}`, params],
+  productOptions: (organizationId: string) => [
+    `organization_id:${organizationId}`,
+    "product-options",
+  ],
+  detail: (organizationId: string, templateId: string) => [
+    `organization_id:${organizationId}`,
+    `template_id:${templateId}`,
+  ],
+  productLinks: (organizationId: string, templateId: string) => [
+    `organization_id:${organizationId}`,
+    `template_id:${templateId}`,
+    "product-links",
+  ],
+  usedIn: (organizationId: string, templateId: string) => [
+    `organization_id:${organizationId}`,
+    `template_id:${templateId}`,
+    "used-in",
+  ],
+});
+
 export const queryKeys = mergeQueryKeys(
   authKeys,
   organizationKeys,
@@ -53,4 +106,6 @@ export const queryKeys = mergeQueryKeys(
   invitationKeys,
   peopleKeys,
   interactionKeys,
+  productKeys,
+  templateKeys,
 );

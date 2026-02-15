@@ -1,10 +1,13 @@
-import { CrmPlaceholderPage } from "./CrmPlaceholderPage";
+import { PageLoader } from "@/components/shared/PageLoader";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { ProductsListView } from "@/features/library/products/components/ProductsListView";
 
 export function LibraryProductsPage() {
-  return (
-    <CrmPlaceholderPage
-      title="Library - Products"
-      description="Products placeholder. Product management will be implemented in D2."
-    />
-  );
+  const { currentOrganization, user } = useAuth();
+
+  if (!currentOrganization || !user) {
+    return <PageLoader />;
+  }
+
+  return <ProductsListView organizationId={currentOrganization.id} userId={user.id} />;
 }

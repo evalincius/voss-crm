@@ -11,9 +11,8 @@ import { SignupPage } from "@/pages/SignupPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DealsPage } from "@/pages/DealsPage";
 import { LibraryProductDetailPage } from "@/pages/LibraryProductDetailPage";
-import { LibraryProductsPage } from "@/pages/LibraryProductsPage";
 import { LibraryTemplateDetailPage } from "@/pages/LibraryTemplateDetailPage";
-import { LibraryTemplatesPage } from "@/pages/LibraryTemplatesPage";
+import { LibraryView } from "@/pages/LibraryView";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { PeoplePage } from "@/pages/PeoplePage";
 import { PersonDetailPage } from "@/pages/PersonDetailPage";
@@ -43,9 +42,16 @@ export const appRoutes: RouteObject[] = [
       { path: ROUTES.CAMPAIGNS, element: <CampaignsPage /> },
       { path: ROUTES.CAMPAIGN_DETAIL, element: <CampaignDetailPage /> },
       { path: ROUTES.DEALS, element: <DealsPage /> },
-      { path: ROUTES.LIBRARY_PRODUCTS, element: <LibraryProductsPage /> },
+      { path: ROUTES.LIBRARY, element: <LibraryView /> },
+      {
+        path: ROUTES.LIBRARY_PRODUCTS,
+        element: <Navigate to={`${ROUTES.LIBRARY}?tab=products`} replace />,
+      },
       { path: ROUTES.LIBRARY_PRODUCT_DETAIL, element: <LibraryProductDetailPage /> },
-      { path: ROUTES.LIBRARY_TEMPLATES, element: <LibraryTemplatesPage /> },
+      {
+        path: ROUTES.LIBRARY_TEMPLATES,
+        element: <Navigate to={`${ROUTES.LIBRARY}?tab=templates`} replace />,
+      },
       { path: ROUTES.LIBRARY_TEMPLATE_DETAIL, element: <LibraryTemplateDetailPage /> },
       {
         path: ROUTES.ORG_SETTINGS,

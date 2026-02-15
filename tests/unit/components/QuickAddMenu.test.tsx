@@ -94,7 +94,7 @@ describe("QuickAddMenu", () => {
     ["Interaction", "/app/people", "interaction"],
     ["Deal", "/app/deals", "deal"],
     ["Campaign", "/app/campaigns", "campaign"],
-    ["Template", "/app/library/templates", "template"],
+    ["Template", "/app/library?tab=templates", "template"],
   ])("navigates to %s with org-aware quickAdd state", (label, expectedPath, intent) => {
     render(
       <AuthContext.Provider value={createAuthContextValue("org-1")}>

@@ -4,7 +4,7 @@
 
 This backlog converts the Phase 2 CRM PRD into an implementation-ready sequence of vertical slices that can be developed, demoed, and validated independently. The plan keeps strict alignment with the scaffold architecture (React + Supabase + RLS + TanStack Query + vertical slices) and prioritizes end-to-end behavior over layer-by-layer buildout.
 
-The delivery plan follows the PRD phase intent (People/Interactions -> Library -> Campaigns -> Deals -> Dashboard -> Polish), with an explicit `D0` shell/foundation slice to reduce integration risk. Every deliverable includes binary acceptance criteria, manual test steps, and atomic dependency-aware tasks.
+The delivery plan follows the PRD phase intent (People/Interactions -> Library -> Library navigation refinement -> Campaigns -> Deals -> Dashboard -> Polish), with an explicit `D0` shell/foundation slice to reduce integration risk. Every deliverable includes binary acceptance criteria, manual test steps, and atomic dependency-aware tasks.
 
 ## 2. Assumptions
 
@@ -90,13 +90,14 @@ The delivery plan follows the PRD phase intent (People/Interactions -> Library -
 
 ### Deliverable order
 
-`D0 -> D1 -> D2 -> D3 -> D4 -> D5 -> D6`
+`D0 -> D1 -> D2 -> D2.1 -> D3 -> D4 -> D5 -> D6`
 
 ### Critical dependencies
 
 - `D0` gates all downstream work by establishing routes/nav/quick-add entry and org-aware query-key baseline.
 - `D1` must land before `D3`, `D4`, and `D5` because campaigns/deals/dashboard depend on People + Interactions.
 - `D2` must land before `D4` because Deal creation requires Product.
+- `D2.1` should land after `D2` and before `D3` to establish a canonical Library entry point and improve discoverability of Templates.
 - `D3` should land before `D5` to enable campaign-driven metrics and follow-up context.
 - `D4` must land before `D5` because dashboard pipeline and follow-ups depend on deals.
 - `D6` is final hardening/release gate and requires `D0-D5` complete.
@@ -348,12 +349,12 @@ The delivery plan follows the PRD phase intent (People/Interactions -> Library -
 
 **Acceptance criteria**
 
-- [ ] Products can be created, edited, archived, and listed.
-- [ ] Templates can be created, edited, archived, and listed with category/status/body.
-- [ ] Templates can be linked to zero or more products, and template lists can filter by product.
-- [ ] Product detail shows stage counts, related campaigns, linked templates, and a Deals deep link with product filter state.
-- [ ] Template detail "Used In" shows derived usage from available interactions/campaign links.
-- [ ] Library tables enforce org-scoped RLS and reference integrity.
+- [x] Products can be created, edited, archived, and listed.
+- [x] Templates can be created, edited, archived, and listed with category/status/body.
+- [x] Templates can be linked to zero or more products, and template lists can filter by product.
+- [x] Product detail shows stage counts, related campaigns, linked templates, and a Deals deep link with product filter state.
+- [x] Template detail "Used In" shows derived usage from available interactions/campaign links.
+- [x] Library tables enforce org-scoped RLS and reference integrity.
 
 **Manual test steps**
 
@@ -423,6 +424,136 @@ The delivery plan follows the PRD phase intent (People/Interactions -> Library -
 - **Definition of Done**: D2 scope is regression-protected.
 - **Acceptance checks**: `npm run typecheck`; `npm run lint`; `vitest run tests/features/library`.
 - **Expected files/modules**: `tests/features/library/*`.
+
+**Implementation notes**
+
+- Implemented D2 migration and schema hardening:
+  - `supabase/migrations/20260216100000_products_templates.sql`
+  - Added enums: `template_category`, `template_status`
+  - Added tables: `products`, `templates`, `template_products`
+  - Added RLS policies (`select/insert/update/delete`) and update triggers
+  - Added D2 integrity rollout for `interactions.product_id` and `interactions.template_id`:
+    - null-safe backfill for pre-D2 values
+    - same-org FKs to `products` and `templates`
+- Regenerated DB types from local Supabase schema:
+  - `src/lib/database.types.ts`
+- Implemented Products slice and pages:
+  - `src/features/library/products/{types,schemas,services,hooks,components,index}.ts`
+  - `src/pages/LibraryProductsPage.tsx`
+  - `src/pages/LibraryProductDetailPage.tsx`
+- Implemented Templates slice and pages:
+  - `src/features/library/templates/{types,schemas,services,hooks,components,index}.ts`
+  - `src/pages/LibraryTemplatesPage.tsx`
+  - `src/pages/LibraryTemplateDetailPage.tsx`
+- Added D2 deep-link verification enabler:
+  - `src/pages/DealsPage.tsx` now reads `product_id` query param and renders filter-state banner (no D4 logic implemented)
+- Added org-scoped query keys for Library domain:
+  - `src/lib/queryKeys.ts` (`productKeys`, `templateKeys`)
+- Added D2 tests:
+  - `tests/features/library/productsService.test.ts`
+  - `tests/features/library/templatesService.test.ts`
+  - `tests/features/library/libraryProductsPage.test.tsx`
+  - `tests/features/library/libraryTemplatesPage.test.tsx`
+  - `tests/features/library/productDetailView.test.tsx`
+  - `tests/features/library/templateDetailView.test.tsx`
+  - Updated `tests/unit/lib/queryKeys.test.ts`
+
+- Locked assumptions/decisions used:
+  - Product detail stage metrics are zero-safe in D2 (full deal-stage aggregates land in D4 when deals domain exists)
+  - Template used-in derives from interactions now, with zero-safe campaign/deal sections
+  - Template archive model uses `status = archived` (no separate archive flag)
+  - Deals deep link contract uses URL query param: `/app/deals?product_id=<id>`
+
+- Run/demo:
+  1. `npm run db:start`
+  2. `npm run db:reset`
+  3. `npm run db:types`
+  4. `npm run typecheck`
+  5. `npm run lint`
+  6. `npm run test -- --run tests/features/library tests/unit/lib/queryKeys.test.ts tests/unit/router/crmRoutes.test.tsx`
+  7. `npm run dev` and validate Library products/templates flows, linking/filtering, used-in display, and Deals deep-link banner
+
+### D2.1
+
+- **Title**: Library Switcher + Canonical Library Route
+- **Goal**: Make Templates discoverable and establish a single visible Library entry with tabbed navigation.
+- **In scope**: Add canonical `/app/library` route, visible Products/Templates tabs, Sidebar/Quick Add routing alignment, backward-compatible redirects from legacy list routes, and tests.
+- **Out of scope**: Product/template detail behavior changes, D3/D4 domain logic, DB schema changes.
+- **Refs**: `R1,R2,R3,R24,R26,C2,C13`.
+
+**Acceptance criteria**
+
+- [ ] Sidebar Library item opens `/app/library`.
+- [ ] `/app/library` shows a visible `Products | Templates` switcher and defaults to `Products`.
+- [ ] Quick Add Template opens `/app/library?tab=templates`.
+- [ ] Legacy list URLs redirect to canonical tabbed route:
+  - `/app/library/products` -> `/app/library?tab=products`
+  - `/app/library/templates` -> `/app/library?tab=templates`
+- [ ] Product/template detail routes remain unchanged and functional.
+- [ ] Header title mapping still resolves `Library` for all library routes.
+- [ ] Router/quick-add/library tests pass.
+
+**Manual test steps**
+
+1. Click Library in Sidebar and confirm `/app/library` opens with Products tab active.
+2. Switch to Templates tab and verify template list/actions are visible.
+3. Trigger Quick Add -> Template and confirm templates tab opens in Library.
+4. Navigate directly to `/app/library/products` and `/app/library/templates` and verify redirects land on canonical tab query URL.
+5. Open product/template detail routes and verify detail pages render as before.
+
+**Expected outcomes**
+
+- Library has a single, discoverable entry point with clear tabbed navigation.
+- Existing deep links remain compatible through redirects.
+
+**Artifacts produced**
+
+- `src/pages/LibraryView.tsx`
+- `src/lib/constants.ts`
+- `src/app/router.tsx`
+- `src/components/layout/{Sidebar,Header}.tsx`
+- `src/components/shared/QuickAddMenu.tsx`
+- `tests/unit/router/crmRoutes.test.tsx`
+- `tests/unit/components/QuickAddMenu.test.tsx`
+- `tests/features/library/libraryView.test.tsx`
+
+**Tasks**
+
+#### T-D2.1-01 - Add canonical Library route and tabbed view
+
+- **Description**: Introduce `/app/library` as the canonical list route and render a visible Products/Templates switcher.
+- **Dependencies**: `T-D2-02`, `T-D2-03`.
+- **Steps**: Create `LibraryView`; resolve tab from URL query (`tab`), default to products, support template quick-add fallback when tab query missing.
+- **Definition of Done**: Users can switch products/templates from one Library page.
+- **Acceptance checks**: Library view tests for default/explicit/invalid tab behavior.
+- **Expected files/modules**: `src/pages/LibraryView.tsx`.
+
+#### T-D2.1-02 - Align routing and backward-compatible redirects
+
+- **Description**: Make `/app/library` canonical while preserving existing list URLs.
+- **Dependencies**: `T-D2.1-01`.
+- **Steps**: Add `ROUTES.LIBRARY`; route `/app/library`; redirect old list routes to canonical query URLs.
+- **Definition of Done**: Legacy URLs resolve through redirects without breaking details.
+- **Acceptance checks**: Router tests for authenticated/unauthenticated coverage and redirect behavior.
+- **Expected files/modules**: `src/lib/constants.ts`, `src/app/router.tsx`.
+
+#### T-D2.1-03 - Update shell entry points (Sidebar, Header, Quick Add)
+
+- **Description**: Align navigation affordances to the canonical Library route.
+- **Dependencies**: `T-D2.1-02`.
+- **Steps**: Sidebar Library href -> `/app/library`; header title matcher includes `/app/library`; Quick Add Template target -> `/app/library?tab=templates`.
+- **Definition of Done**: All primary entry points lead users into canonical Library flow.
+- **Acceptance checks**: Quick Add unit tests and manual shell navigation walkthrough.
+- **Expected files/modules**: `src/components/layout/Sidebar.tsx`, `src/components/layout/Header.tsx`, `src/components/shared/QuickAddMenu.tsx`.
+
+#### T-D2.1-04 - Add and update tests for switcher behavior
+
+- **Description**: Add coverage for tab routing and update existing expectations.
+- **Dependencies**: `T-D2.1-01`, `T-D2.1-02`, `T-D2.1-03`.
+- **Steps**: Add `libraryView` tests; update router and quick-add tests for canonical route/query-based behavior.
+- **Definition of Done**: Regression coverage protects canonical Library UX.
+- **Acceptance checks**: `npm run test -- --run tests/unit/router/crmRoutes.test.tsx tests/unit/components/QuickAddMenu.test.tsx tests/features/library`.
+- **Expected files/modules**: `tests/features/library/libraryView.test.tsx`, `tests/unit/router/crmRoutes.test.tsx`, `tests/unit/components/QuickAddMenu.test.tsx`.
 
 ### D3
 

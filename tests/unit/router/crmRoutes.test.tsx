@@ -54,6 +54,7 @@ function renderRoute(path: string, isAuthenticated: boolean) {
 describe("CRM routes", () => {
   it.each([
     ["/app/dashboard", "Dashboard"],
+    ["/app/library", "Library"],
     ["/app/people", "People"],
     ["/app/people/person-1", "Person Detail"],
     ["/app/campaigns", "Campaigns"],
@@ -71,6 +72,7 @@ describe("CRM routes", () => {
 
   it.each([
     "/app/dashboard",
+    "/app/library",
     "/app/people",
     "/app/people/person-1",
     "/app/campaigns",
@@ -89,7 +91,7 @@ describe("CRM routes", () => {
     const router = createMemoryRouter(appRoutes, {
       initialEntries: [
         {
-          pathname: "/app/library/templates",
+          pathname: "/app/library",
           state: {
             quickAdd: {
               intent: "template",

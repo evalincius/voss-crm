@@ -85,6 +85,20 @@ export type Database = {
             referencedRelation: "people";
             referencedColumns: ["organization_id", "id"];
           },
+          {
+            foreignKeyName: "interactions_products_fk";
+            columns: ["organization_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "interactions_templates_fk";
+            columns: ["organization_id", "template_id"];
+            isOneToOne: false;
+            referencedRelation: "templates";
+            referencedColumns: ["organization_id", "id"];
+          },
         ];
       };
       organization_invitations: {
@@ -259,6 +273,50 @@ export type Database = {
           },
         ];
       };
+      products: {
+        Row: {
+          archived_at: string | null;
+          created_at: string;
+          created_by: string;
+          description: string | null;
+          id: string;
+          is_archived: boolean;
+          name: string;
+          organization_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by: string;
+          description?: string | null;
+          id?: string;
+          is_archived?: boolean;
+          name: string;
+          organization_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          description?: string | null;
+          id?: string;
+          is_archived?: boolean;
+          name?: string;
+          organization_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "products_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -300,6 +358,92 @@ export type Database = {
           },
         ];
       };
+      template_products: {
+        Row: {
+          created_at: string;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          product_id: string;
+          template_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          product_id: string;
+          template_id: string;
+        };
+        Update: {
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          product_id?: string;
+          template_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "template_products_product_fk";
+            columns: ["organization_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "template_products_template_fk";
+            columns: ["organization_id", "template_id"];
+            isOneToOne: false;
+            referencedRelation: "templates";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      templates: {
+        Row: {
+          body: string;
+          category: Database["public"]["Enums"]["template_category"];
+          created_at: string;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          status: Database["public"]["Enums"]["template_status"];
+          title: string;
+          updated_at: string;
+        };
+        Insert: {
+          body: string;
+          category: Database["public"]["Enums"]["template_category"];
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          status?: Database["public"]["Enums"]["template_status"];
+          title: string;
+          updated_at?: string;
+        };
+        Update: {
+          body?: string;
+          category?: Database["public"]["Enums"]["template_category"];
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          status?: Database["public"]["Enums"]["template_status"];
+          title?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "templates_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -331,6 +475,8 @@ export type Database = {
       invitation_status: "pending" | "accepted" | "expired" | "revoked";
       organization_role: "owner" | "member";
       person_lifecycle: "new" | "contacted" | "engaged" | "customer";
+      template_category: "cold_email" | "warm_outreach" | "content" | "paid_ads" | "offer";
+      template_status: "draft" | "approved" | "archived";
       user_role: "admin" | "user";
     };
     CompositeTypes: {
@@ -464,6 +610,8 @@ export const Constants = {
       invitation_status: ["pending", "accepted", "expired", "revoked"],
       organization_role: ["owner", "member"],
       person_lifecycle: ["new", "contacted", "engaged", "customer"],
+      template_category: ["cold_email", "warm_outreach", "content", "paid_ads", "offer"],
+      template_status: ["draft", "approved", "archived"],
       user_role: ["admin", "user"],
     },
   },

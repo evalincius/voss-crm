@@ -97,8 +97,13 @@ Shared utilities remain in `src/lib/*` only.
   - `/app/people` + `/app/people/:id`
   - `/app/campaigns` + `/app/campaigns/:id`
   - `/app/deals`
-  - `/app/library/products` + `/app/library/products/:id`
-  - `/app/library/templates` + `/app/library/templates/:id`
+  - `/app/library` (canonical Library list entry)
+  - `/app/library/products/:id`
+  - `/app/library/templates/:id`
+
+- Keep legacy list URLs as compatibility redirects:
+  - `/app/library/products` -> `/app/library?tab=products`
+  - `/app/library/templates` -> `/app/library?tab=templates`
 
 #### FR-CRM-SHELL-003: Global Quick Add
 
@@ -106,6 +111,7 @@ Shared utilities remain in `src/lib/*` only.
   - Person, Interaction, Deal, Campaign, Template
 
 - Quick Add must respect current organization context.
+- Template quick add should open Library templates tab (`/app/library?tab=templates`).
 
 ---
 
@@ -280,6 +286,15 @@ Campaign detail must show:
 ---
 
 ### 4.6 Library (Products + Templates)
+
+#### FR-LIB-001: Library Switcher + Canonical URL
+
+- Library list entry point is `/app/library`.
+- Library must show a visible switcher for `Products` and `Templates`.
+- Tab state is URL-driven via query param:
+  - `tab=products`
+  - `tab=templates`
+- Missing or invalid tab defaults to `products`.
 
 #### FR-PROD-001: Product CRUD
 
@@ -467,6 +482,13 @@ This PRD starts **only after** Scaffolding PRD acceptance criteria are met.
 - DB: products, templates, template_products + RLS
 - UI: Products list/detail with stage counts, Templates list/detail with status + used-in
 
+### Phase D2.1 — Library Switcher + Canonical Route
+
+- UI routing: add canonical `/app/library` with visible `Products | Templates` tabs
+- Shell alignment: Sidebar Library item targets `/app/library`; header title resolves `Library`
+- Quick Add alignment: Template intent opens `/app/library?tab=templates`
+- Compatibility: redirect `/app/library/products` and `/app/library/templates` to canonical tabbed route
+
 ### Phase D3 — Campaigns
 
 - DB: campaigns + m2m tables + RLS
@@ -502,8 +524,9 @@ This PRD starts **only after** Scaffolding PRD acceptance criteria are met.
 9. **Campaign membership**: Add people to campaign (bulk) → visible on person + campaign
 10. **Campaign metrics**: People added/engaged + deals created compute correctly
 11. **Product performance**: Product detail shows stage counts + link to filtered Deals board
-12. **Dashboard follow-ups**: Follow-ups due list pulls from deals + interactions next_step
-13. **RLS**: Direct Supabase queries cannot read/write other org’s CRM records
-14. **Type-safe**: `tsc --noEmit` passes
-15. **Lint-clean**: `eslint .` passes
-16. **Tests pass**: `vitest run` passes
+12. **Library switcher**: `/app/library` shows visible Products/Templates tabs, defaults to Products, and legacy list URLs redirect to canonical tabbed route
+13. **Dashboard follow-ups**: Follow-ups due list pulls from deals + interactions next_step
+14. **RLS**: Direct Supabase queries cannot read/write other org’s CRM records
+15. **Type-safe**: `tsc --noEmit` passes
+16. **Lint-clean**: `eslint .` passes
+17. **Tests pass**: `vitest run` passes

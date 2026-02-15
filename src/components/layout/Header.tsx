@@ -28,6 +28,7 @@ const pageTitleRules: Array<{ title: string; matches: (pathname: string) => bool
   {
     title: "Library",
     matches: (pathname) =>
+      pathname === ROUTES.LIBRARY ||
       pathname === ROUTES.LIBRARY_PRODUCTS ||
       pathname.startsWith(`${ROUTES.LIBRARY_PRODUCTS}/`) ||
       pathname === ROUTES.LIBRARY_TEMPLATES ||

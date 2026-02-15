@@ -17,6 +17,7 @@ export {
 export { dealFormSchema } from "./schemas/deals.schema";
 export {
   listDeals,
+  listAllDealsForExport,
   getDealById,
   createDeal,
   updateDeal,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useSearchParams } from "react-router";
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,28 @@ import { DealsFilters } from "@/features/deals/components/DealsFilters";
 import { DealFormDialog } from "@/features/deals/components/DealFormDialog";
 import { DealDrawer } from "@/features/deals/components/DealDrawer";
 import { InteractionFormDialog } from "@/features/interactions/components/InteractionFormDialog";
+import { listAllDealsForExport } from "@/features/deals/services/dealsService";
 import { useDealsList, useUpdateDealStage } from "@/features/deals/hooks/useDeals";
+import { generateCsv, downloadCsv, type CsvColumn } from "@/lib/csvExport";
 import {
+  DEAL_STAGE_LABELS,
   QUICK_ADD_INTENTS,
   type QuickAddIntent,
   type QuickAddNavigationState,
 } from "@/lib/constants";
-import type { DealStage } from "@/features/deals/types";
+import type { DealCardData, DealStage } from "@/features/deals/types";
+
+const dealsCsvColumns: CsvColumn<DealCardData>[] = [
+  { header: "Person", accessor: (r) => r.person_name },
+  { header: "Product", accessor: (r) => r.product_name },
+  { header: "Stage", accessor: (r) => DEAL_STAGE_LABELS[r.stage] },
+  { header: "Value", accessor: (r) => (r.value != null ? String(r.value) : "") },
+  { header: "Currency", accessor: (r) => r.currency ?? "" },
+  { header: "Next Step At", accessor: (r) => r.next_step_at ?? "" },
+  { header: "Notes", accessor: (r) => r.notes ?? "" },
+  { header: "Created", accessor: (r) => r.created_at },
+  { header: "Updated", accessor: (r) => r.updated_at },
+];
 
 function readQuickAddState(state: unknown): QuickAddNavigationState["quickAdd"] | null {
   if (!state || typeof state !== "object") return null;
@@ -44,6 +60,7 @@ export function DealsPage() {
   const [personSearch, setPersonSearch] = useState("");
   const [isDealDialogOpen, setIsDealDialogOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
   const [isInteractionDialogOpen, setIsInteractionDialogOpen] = useState(false);
   const [interactionContext, setInteractionContext] = useState<{
     dealId: string;
@@ -83,6 +100,25 @@ export function DealsPage() {
     setPersonSearch(search);
   }, []);
 
+  async function handleExport() {
+    if (!organizationId) return;
+    setIsExporting(true);
+    try {
+      const result = await listAllDealsForExport(organizationId);
+      if (result.error || !result.data) {
+        toast.error(result.error ?? "Failed to export deals");
+        return;
+      }
+      const csv = generateCsv(dealsCsvColumns, result.data);
+      downloadCsv(csv, `deals-${new Date().toISOString().slice(0, 10)}.csv`);
+      toast.success(`Exported ${result.data.length} deals`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   const handleAddInteraction = useCallback((dealId: string, personId: string) => {
     setInteractionContext({ dealId, personId });
     setIsInteractionDialogOpen(true);
@@ -96,10 +132,16 @@ export function DealsPage() {
     <section className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-text-primary text-2xl font-bold">Deals</h2>
-        <Button onClick={() => setIsDealDialogOpen(true)}>
-          <Plus className="mr-1.5 h-4 w-4" />
-          New Deal
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => void handleExport()} disabled={isExporting}>
+            <Download className="mr-1.5 h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </Button>
+          <Button onClick={() => setIsDealDialogOpen(true)}>
+            <Plus className="mr-1.5 h-4 w-4" />
+            New Deal
+          </Button>
+        </div>
       </div>
 
       <DealsFilters

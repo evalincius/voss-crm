@@ -58,7 +58,12 @@ export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardPro
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: "calc(100vh - 220px)" }}>
+      <div
+        className="flex gap-3 overflow-x-auto pb-4"
+        style={{ minHeight: "calc(100vh - 220px)" }}
+        role="region"
+        aria-label="Deals pipeline board"
+      >
         {DEAL_STAGE_VALUES.map((stage) => (
           <DealColumn
             key={stage}

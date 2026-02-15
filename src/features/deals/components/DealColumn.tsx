@@ -18,6 +18,8 @@ export function DealColumn({ stage, deals, onSelectDeal, onStageChange }: DealCo
   return (
     <div
       ref={setNodeRef}
+      role="group"
+      aria-label={`${DEAL_STAGE_LABELS[stage]} stage, ${deals.length} ${deals.length === 1 ? "deal" : "deals"}`}
       className={`flex w-64 shrink-0 flex-col rounded-lg border p-2 ${
         isOver ? "border-primary/50 bg-primary/5" : "border-border bg-bg-app"
       }`}

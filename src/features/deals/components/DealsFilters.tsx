@@ -52,7 +52,7 @@ export function DealsFilters({
   return (
     <div className="flex flex-wrap items-center gap-3">
       <Select value={productId ?? "__all__"} onValueChange={handleProductChange}>
-        <SelectTrigger className="w-52">
+        <SelectTrigger className="w-52" aria-label="Filter deals by product">
           <SelectValue placeholder="All products" />
         </SelectTrigger>
         <SelectContent>
@@ -70,6 +70,7 @@ export function DealsFilters({
         value={localSearch}
         onChange={(e) => setLocalSearch(e.target.value)}
         className="w-52"
+        aria-label="Search deals by person"
       />
     </div>
   );

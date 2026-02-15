@@ -96,6 +96,7 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
                       type="button"
                       onClick={() => onSelectDeal(item.deal_id!)}
                       className="text-primary text-xs hover:underline"
+                      aria-label={`View deal for ${item.person_name}`}
                     >
                       View deal
                     </button>

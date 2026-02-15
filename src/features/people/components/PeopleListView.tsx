@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import { Archive, FilePenLine, MessageSquarePlus, Undo2, Users } from "lucide-react";
+import { Archive, Download, FilePenLine, MessageSquarePlus, Undo2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,8 @@ import { PeopleFilters } from "@/features/people/components/PeopleFilters";
 import { PersonFormDialog } from "@/features/people/components/PersonFormDialog";
 import { PeopleCsvImportDialog } from "@/features/people/components/PeopleCsvImportDialog";
 import { AddToCampaignDialog } from "@/features/people/components/AddToCampaignDialog";
+import { listAllPeopleForExport } from "@/features/people/services/peopleService";
+import { generateCsv, downloadCsv, type CsvColumn } from "@/lib/csvExport";
 import type {
   PeopleArchiveFilter,
   PeopleSort,
@@ -60,6 +62,16 @@ function RowActionIconButton({ label, onClick, icon: Icon }: RowActionIconButton
     </Tooltip>
   );
 }
+
+const peopleCsvColumns: CsvColumn<Person>[] = [
+  { header: "Name", accessor: (r) => r.full_name },
+  { header: "Email", accessor: (r) => r.email ?? "" },
+  { header: "Phone", accessor: (r) => r.phone ?? "" },
+  { header: "Lifecycle", accessor: (r) => r.lifecycle },
+  { header: "Notes", accessor: (r) => r.notes ?? "" },
+  { header: "Created", accessor: (r) => r.created_at },
+  { header: "Updated", accessor: (r) => r.updated_at },
+];
 
 const validLifecycleValues: ReadonlyArray<PersonLifecycle | "all"> = [
   "all",
@@ -120,6 +132,7 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
   const [isCsvOpen, setIsCsvOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const productInterest = searchParams.get("product_interest") || null;
   const sourceCampaign = searchParams.get("source_campaign") || null;
@@ -246,6 +259,24 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
     setSearchParams(next, { replace: true });
   }
 
+  async function onExport() {
+    setIsExporting(true);
+    try {
+      const result = await listAllPeopleForExport(organizationId);
+      if (result.error || !result.data) {
+        toast.error(result.error ?? "Failed to export people");
+        return;
+      }
+      const csv = generateCsv(peopleCsvColumns, result.data);
+      downloadCsv(csv, `people-${new Date().toISOString().slice(0, 10)}.csv`);
+      toast.success(`Exported ${result.data.length} people`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Export failed");
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
   async function onArchive(person: Person) {
     try {
       if (person.is_archived) {
@@ -301,6 +332,15 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
         </div>
 
         <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => void onExport()}
+            disabled={isExporting}
+          >
+            <Download className="mr-1 h-4 w-4" />
+            {isExporting ? "Exporting..." : "Export CSV"}
+          </Button>
           <Button type="button" variant="secondary" onClick={() => setIsCsvOpen(true)}>
             Import CSV
           </Button>

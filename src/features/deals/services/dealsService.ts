@@ -262,6 +262,46 @@ export async function listInteractionsByDeal(
   return { data: interactions, error: null };
 }
 
+export async function listAllDealsForExport(
+  organizationId: string,
+): Promise<ApiResult<DealCardData[]>> {
+  const { data, error } = await supabase
+    .from("deals")
+    .select(
+      "id, organization_id, person_id, product_id, campaign_id, stage, value, currency, next_step_at, notes, created_at, updated_at, people!deals_person_fk(full_name), products!deals_product_fk(name)",
+    )
+    .eq("organization_id", organizationId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const cards: DealCardData[] = (data ?? []).map((row) => {
+    const person = (row as { people?: unknown }).people as { full_name: string } | undefined;
+    const product = (row as { products?: unknown }).products as { name: string } | undefined;
+
+    return {
+      id: (row as { id: string }).id,
+      organization_id: (row as { organization_id: string }).organization_id,
+      person_id: (row as { person_id: string }).person_id,
+      product_id: (row as { product_id: string }).product_id,
+      campaign_id: (row as { campaign_id: string | null }).campaign_id,
+      stage: (row as { stage: DealStage }).stage,
+      value: (row as { value: number | null }).value,
+      currency: (row as { currency: string | null }).currency,
+      next_step_at: (row as { next_step_at: string | null }).next_step_at,
+      notes: (row as { notes: string | null }).notes,
+      created_at: (row as { created_at: string }).created_at,
+      updated_at: (row as { updated_at: string }).updated_at,
+      person_name: person?.full_name ?? "Unknown",
+      product_name: product?.name ?? "Unknown",
+    };
+  });
+
+  return { data: cards, error: null };
+}
+
 export async function searchPeopleForDeal(
   organizationId: string,
   search: string,

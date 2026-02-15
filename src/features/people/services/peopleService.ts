@@ -306,6 +306,21 @@ export async function findPersonByPhone(
   return { data: data ?? null, error: null };
 }
 
+export async function listAllPeopleForExport(organizationId: string): Promise<ApiResult<Person[]>> {
+  const { data, error } = await supabase
+    .from("people")
+    .select("*")
+    .eq("organization_id", organizationId)
+    .eq("is_archived", false)
+    .order("full_name", { ascending: true });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  return { data: data ?? [], error: null };
+}
+
 export async function updatePersonFromImport(
   personId: string,
   payload: Partial<Pick<Person, "full_name" | "email" | "phone" | "notes" | "lifecycle">>,

@@ -16,6 +16,7 @@ export { personFormSchema, peopleFiltersSchema } from "./schemas/people.schema";
 export { parseCsvText, runPeopleCsvImport } from "./services/peopleCsvImportService";
 export {
   listPeople,
+  listAllPeopleForExport,
   getPersonById,
   createPerson,
   updatePerson,

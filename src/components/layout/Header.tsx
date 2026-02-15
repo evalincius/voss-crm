@@ -2,6 +2,7 @@ import { useLocation } from "react-router";
 import { Sun, Moon, User, LogOut } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { QuickAddMenu } from "@/components/shared/QuickAddMenu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,17 +13,39 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ROUTES } from "@/lib/constants";
 
-const pageTitles: Record<string, string> = {
-  [ROUTES.DASHBOARD]: "Dashboard",
-  [ROUTES.ORG_SETTINGS]: "Organization Settings",
-};
+const pageTitleRules: Array<{ title: string; matches: (pathname: string) => boolean }> = [
+  { title: "Dashboard", matches: (pathname) => pathname === ROUTES.DASHBOARD },
+  {
+    title: "People",
+    matches: (pathname) => pathname === ROUTES.PEOPLE || pathname.startsWith(`${ROUTES.PEOPLE}/`),
+  },
+  {
+    title: "Campaigns",
+    matches: (pathname) =>
+      pathname === ROUTES.CAMPAIGNS || pathname.startsWith(`${ROUTES.CAMPAIGNS}/`),
+  },
+  { title: "Deals", matches: (pathname) => pathname === ROUTES.DEALS },
+  {
+    title: "Library",
+    matches: (pathname) =>
+      pathname === ROUTES.LIBRARY ||
+      pathname === ROUTES.LIBRARY_PRODUCTS ||
+      pathname.startsWith(`${ROUTES.LIBRARY_PRODUCTS}/`) ||
+      pathname === ROUTES.LIBRARY_TEMPLATES ||
+      pathname.startsWith(`${ROUTES.LIBRARY_TEMPLATES}/`),
+  },
+  {
+    title: "Organization Settings",
+    matches: (pathname) => pathname === ROUTES.ORG_SETTINGS,
+  },
+];
 
 export function Header() {
   const location = useLocation();
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
 
-  const title = pageTitles[location.pathname] ?? "Page";
+  const title = pageTitleRules.find((rule) => rule.matches(location.pathname))?.title ?? "Page";
 
   return (
     <header
@@ -32,6 +55,8 @@ export function Header() {
       <h1 className="font-heading text-text-primary text-xl font-bold">{title}</h1>
 
       <div className="flex items-center gap-3">
+        <QuickAddMenu />
+
         {/* Theme toggle */}
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

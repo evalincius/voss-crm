@@ -1,0 +1,52 @@
+import type { Tables } from "@/lib/database.types";
+import { DEAL_STAGE_VALUES } from "@/lib/constants";
+
+export type Product = Tables<"products">;
+
+export type ProductArchiveFilter = "active" | "all" | "archived";
+export type ProductSort = "updated_desc" | "created_desc" | "name_asc";
+
+export interface ProductListParams {
+  organizationId: string;
+  search: string;
+  archiveFilter: ProductArchiveFilter;
+  sort: ProductSort;
+}
+
+export interface CreateProductInput {
+  organization_id: string;
+  name: string;
+  description: string | null;
+  created_by: string;
+}
+
+export interface UpdateProductInput {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+export const dealStageValues = DEAL_STAGE_VALUES;
+
+export type DealStage = (typeof dealStageValues)[number];
+
+export type ProductStageCounts = Record<DealStage, number>;
+
+export interface LinkedTemplateSummary {
+  id: string;
+  title: string;
+  category: string;
+  status: string;
+}
+
+export interface LinkedCampaignSummary {
+  id: string;
+  name: string;
+  type: string;
+}
+
+export interface ProductPerformanceSummary {
+  stageCounts: ProductStageCounts;
+  relatedCampaigns: LinkedCampaignSummary[];
+  linkedTemplates: LinkedTemplateSummary[];
+}

@@ -1,10 +1,13 @@
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { PageLoader } from "@/components/shared/PageLoader";
+import { DashboardView } from "@/features/dashboard/components/DashboardView";
+
 export function DashboardPage() {
-  return (
-    <div>
-      <h2 className="font-heading text-text-primary mb-4 text-2xl font-bold">Dashboard</h2>
-      <p className="text-text-secondary">
-        Welcome to your dashboard. Content will be added in future deliverables.
-      </p>
-    </div>
-  );
+  const { currentOrganization, user } = useAuth();
+
+  if (!currentOrganization || !user) {
+    return <PageLoader />;
+  }
+
+  return <DashboardView organizationId={currentOrganization.id} userId={user.id} />;
 }

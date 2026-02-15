@@ -2,9 +2,10 @@
 
 ## 1. What this repo is
 
-- **Project:** CoEngineers Platform — dark-themed SaaS scaffolding
-- **Goal:** Fully functional authentication, multi-tenancy (organizations/members/invitations), app shell (sidebar + header + routing), design system ("Modern Fintech Minimalism"), and Supabase integration. All domain features (contacts, deals, activities, gamification, builder, etc.) are **out of scope**.
-- **Primary users:** Internal engineering team and AI agents building on top of this scaffolding
+- **Project:** CoEngineers Simple Sales CRM (B2C) — Phase 2
+- **Goal:** Build a production-ready CRM on top of the completed scaffold foundation: auth, multi-tenancy, app shell, design system, and Supabase integration.
+- **Depends on:** Scaffolding PRD acceptance criteria must already pass before Phase 2 CRM delivery.
+- **Primary users:** Internal engineering team and AI agents implementing CRM vertical slices.
 
 ## 2. What the agent should do
 
@@ -12,13 +13,20 @@
   - Follow vertical slice architecture (`src/features/<name>/`)
   - Use Zod v4 APIs (`z.email()`, `z.extend()`, `z.treeifyError()`)
   - Use `SECURITY DEFINER` helper functions for RLS (`user_organization_ids()`, `user_current_organization_id()`)
-  - Include `organization_id` in TanStack Query keys for cache isolation
+  - Include `organization_id` in every TanStack Query key for cache isolation
+  - Keep `queryClient.clear()` on organization switch
   - Use `bg-bg-surface` (not `bg-card`) for cards on the app background
   - Use black (`#000000`) text on orange backgrounds (9.1:1 AAA)
   - Use `text-base` for 1rem text size
   - Use `border-radius: 2px` for nav indicator bars
   - Use `data-sonner-theme` (Sonner v2)
-  - Apply RLS to every new table — no exceptions
+  - Apply RLS to every new table
+  - Keep CRM behavior aligned with PRD principles:
+    - B2C model (no Companies/Accounts object)
+    - Manual conversion only (deals created by explicit user action)
+    - People-first linking (interactions require `person_id`)
+    - Keyboard fallback for deal stage movement (non-drag path)
+
 - **Don't:**
   - Import across features — shared code goes in `src/lib/`
   - Use `z.string().email()` (deprecated in Zod 4) — use `z.email()`
@@ -26,15 +34,24 @@
   - Use `text-m` (not a valid Tailwind class)
   - Use `rounded-full` on nav indicators
   - Use white text on `#F7931A` (2.3:1 fails WCAG)
-  - Use light mode muted text (`#9AA0A6`) for essential content (fails all WCAG levels)
+  - Use light mode muted text (`#9AA0A6`) for essential content (fails WCAG)
   - Use arcade shadow tokens in new work
   - Upgrade to ESLint 10, @types/node v25, globals v17, or lint-staged v16
   - Use `poolOptions` in Vitest config (removed in v4)
-  - Add domain-specific packages (@dnd-kit/\*, @elevenlabs/react, date-fns, etc.)
+
+- **Dependency policy:**
+  - Allowed CRM dependencies:
+    - `@dnd-kit/core`
+    - `@dnd-kit/sortable`
+    - `@dnd-kit/utilities`
+    - `date-fns`
+    - `papaparse` (optional)
+  - Do not add unrelated domain packages without explicit product requirement.
+
 - **Constraints:**
-  - **Security:** Zero cross-org data leakage (P0). RLS on every table. No API keys in client-side `VITE_` env vars.
+  - **Security:** Zero cross-org data leakage (P0). RLS on every domain table. No secret API keys in browser-exposed `VITE_` env vars.
   - **Performance:** 600KB chunk warning limit. Manual chunks for react, router, query, radix, forms, supabase, icons.
-  - **Node:** Requires >=20.19 or >=22.12 (Vite 7 drops Node 18)
+  - **Node:** Requires >=20.19 or >=22.12 (Vite 7 drops Node 18).
 
 ## 3. Project map
 
@@ -47,25 +64,41 @@ src/
 ├── components/
 │   ├── layout/                      # AppLayout, AuthLayout, Header, Sidebar
 │   ├── shared/                      # ErrorBoundary, LoadingSpinner, PageLoader, ProtectedRoute
-│   └── ui/                          # shadcn/ui components (scaffolding only)
+│   └── ui/                          # shadcn/ui components
 ├── features/
-│   ├── auth/                        # Login, signup, session, sign out
-│   └── organizations/               # Org CRUD, members, invitations, switcher
+│   ├── auth/
+│   ├── organizations/
+│   ├── people/
+│   ├── interactions/
+│   ├── deals/                       # target slice
+│   ├── campaigns/                   # target slice
+│   ├── library/
+│   │   ├── products/                # target slice
+│   │   └── templates/               # target slice
+│   └── dashboard/                   # target slice
 ├── lib/                             # constants, database.types, queryClient, queryKeys, supabase, utils
-├── pages/                           # LoginPage, SignupPage, DashboardPage, OrgSettingsPage, etc.
+├── pages/                           # route pages (dashboard, people, campaigns, deals, library, auth, org)
 ├── providers/                       # AuthProvider, QueryProvider, ThemeProvider
 ├── styles/                          # tokens.css, fonts.css, globals.css
 └── types/                           # Database re-exports, NavItem, ApiResult
 
 supabase/
 ├── config.toml                      # Local dev config (ports, auth settings)
-├── seed.sql                         # Test user: test@example.com / password123
-└── migrations/                      # 4 tables + helper functions + RLS policies
+├── seed.sql                         # Base and CRM seed data
+└── migrations/                      # Base + domain tables, helper functions, RLS policies
 
 tests/
 ├── setup.ts
 ├── unit/
-├── features/{auth,organizations}/
+├── features/
+│   ├── auth/
+│   ├── organizations/
+│   ├── people/
+│   ├── interactions/
+│   ├── deals/                       # target tests
+│   ├── campaigns/                   # target tests
+│   ├── library/                     # target tests
+│   └── dashboard/                   # target tests
 └── integration/
 ```
 
@@ -75,12 +108,12 @@ tests/
 ## 4. Setup & commands
 
 - **Install:** `npm install`
-- **Run (dev):** `npm run dev` (Vite, port 3000, auto-open) + `npm run db:start` (local Supabase, requires Docker)
+- **Run (dev):** `npm run dev` (Vite, port 3000) + `npm run db:start` (local Supabase, requires Docker)
 - **Lint:** `npm run lint` / `npm run lint:fix`
 - **Format:** `npm run format`
 - **Test:** `npm run test` (watch) / `npm run test:coverage` (with v8 coverage)
 - **Build:** `npm run build` (`tsc -b && vite build`)
-- **Typecheck:** `npm run typecheck` (`tsc --noEmit`)
+- **Typecheck:** `npm run typecheck` (`tsc -b`)
 - **Database:** `npm run db:start` / `npm run db:stop` / `npm run db:reset` / `npm run db:types`
 
 ## 5. Environment variables
@@ -93,19 +126,19 @@ tests/
   VITE_APP_URL=http://localhost:3000
   ```
 - **Where to put them:** `.env` (copied from `.env.example`)
-- **Key migration note:** Supabase is replacing the legacy `anon` JWT key with a new **publishable key** (format `sb_publishable_...`). Use `VITE_SUPABASE_PUBLISHABLE_KEY` for new work. The local Supabase CLI does not yet support publishable keys, so for local dev you can still pass the local anon key via this env var. Both key types work with `createClient()`. See [Supabase API keys docs](https://supabase.com/docs/guides/api/api-keys) for details.
-- **Secrets policy:** Never add API keys with `VITE_` prefix — they are exposed in the browser bundle. Publishable keys are designed to be safe for client-side use. Third-party keys (Gemini, ElevenLabs, Gamma) are domain-feature concerns and out of scope for scaffolding.
+- **Key migration note:** Supabase is replacing legacy `anon` JWT keys with publishable keys (`sb_publishable_...`). For local CLI flows, a local anon key may still be provided through `VITE_SUPABASE_PUBLISHABLE_KEY`.
+- **Secrets policy:** Never put secret third-party credentials in `VITE_` env vars because they are exposed to client bundles. Supabase publishable keys are designed for client-side use.
 
 ## 6. Architecture
 
 - **UI:** React 19 + shadcn/ui (Radix primitives) + Tailwind CSS 4 + class-variance-authority. "Modern Fintech Minimalism" design system with dark mode default.
 - **State:** TanStack Query v5 for server state (staleTime: 5min, gcTime: 30min, retry: 1, refetchOnWindowFocus: false). React context for auth/org state via `AuthProvider`.
-- **Navigation:** React Router v7. `/login` + `/signup` use `AuthLayout`. `/app/*` uses `AppLayout` (sidebar + header + outlet). `ProtectedRoute` guards all `/app/*` routes.
-- **Data layer:** Supabase (PostgreSQL 15 + RLS). Data flow: `Supabase → Service → Hook (TanStack Query) → Component → Page → Router`. Organization-scoped queries include `organization_id` in query keys; `queryClient.clear()` on org switch.
-- **Error handling:** `ErrorBoundary` wraps the provider stack. Inline form errors via Zod validation. Toast notifications via Sonner.
-- **Logging/analytics:** None in scaffolding scope.
+- **Navigation:** React Router v7 with protected CRM routes under `/app/*`.
+- **Data layer:** Supabase (PostgreSQL 15 + RLS). Data flow: `Supabase -> Service -> Hook (TanStack Query) -> Component -> Page -> Router`.
+- **Error handling:** `ErrorBoundary` wraps provider stack. Inline form errors via Zod validation. Toast notifications via Sonner.
+- **Logging/analytics:** Not part of current CRM PRD scope.
 
-### Provider Stack
+### Provider stack
 
 ```
 ErrorBoundary
@@ -117,7 +150,7 @@ ErrorBoundary
                       └── Toaster
 ```
 
-### Supabase Client Config
+### Supabase client config
 
 ```typescript
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
@@ -125,7 +158,26 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 });
 ```
 
-### Local Supabase Ports
+### Routing contract (protected CRM routes)
+
+- `/app/dashboard`
+- `/app/people`
+- `/app/people/:id`
+- `/app/campaigns`
+- `/app/campaigns/:id`
+- `/app/deals`
+- `/app/library/products`
+- `/app/library/products/:id`
+- `/app/library/templates`
+- `/app/library/templates/:id`
+
+### Global quick add contract
+
+- Required create intents: `Person`, `Interaction`, `Deal`, `Campaign`, `Template`
+- Must carry current organization context
+- Must be accessible from global shell UI (header action and/or command menu)
+
+### Local Supabase ports
 
 | Service  | Port  |
 | -------- | ----- |
@@ -134,7 +186,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 | Studio   | 54343 |
 | Inbucket | 54344 |
 
-Auth: email confirmations disabled, signup enabled, JWT expiry 3600s, site_url `http://127.0.0.1:3000`.
+Auth local defaults: email confirmations disabled, signup enabled, JWT expiry 3600s, site URL `http://127.0.0.1:3000`.
 
 ## 7. Conventions & standards
 
@@ -143,14 +195,14 @@ Auth: email confirmations disabled, signup enabled, JWT expiry 3600s, site_url `
 - TypeScript ~5.9.3, strict mode with all extra checks
 - ESLint 9 flat config: `consistent-type-imports: 'error'`, `no-unused-vars` with `^_` ignore, `no-misused-promises`
 - Prettier + prettier-plugin-tailwindcss
-- Path alias: `@/*` → `./src/*`
+- Path alias: `@/*` -> `./src/*`
 
 ### Naming
 
-- Files: PascalCase for components (`LoginForm.tsx`), camelCase for hooks (`useAuth.ts`), kebab-case for schemas (`auth.schema.ts`)
+- Files: PascalCase for components (`PeopleList.tsx`), camelCase for hooks (`usePeople.ts`), kebab-case for schemas (`people.schema.ts`)
 - Exports: barrel `index.ts` per feature subdirectory
 
-### Folder/file conventions — Vertical Slice
+### Folder/file conventions — vertical slice
 
 ```
 src/features/<name>/
@@ -162,19 +214,25 @@ src/features/<name>/
 └── index.ts       # Barrel export (public API)
 ```
 
-No cross-feature imports. Shared code in `src/lib/`.
+- No cross-feature imports.
+- Shared utilities and cross-cutting helpers belong in `src/lib/`.
 
-### Components
+### CRM domain contracts
 
-- shadcn/ui in `src/components/ui/` (scaffolding subset: alert-dialog, avatar, badge, button, card, dialog, dropdown-menu, input, label, scroll-area, select, separator, skeleton, sonner, table, tabs, tooltip)
-- Layout in `src/components/layout/` (AppLayout, AuthLayout, Header, Sidebar)
-- Shared in `src/components/shared/` (ErrorBoundary, LoadingSpinner, PageLoader, ProtectedRoute)
+- **Person lifecycle:** `new | contacted | engaged | customer`
+- **Interaction type:** `email | call | dm | meeting | note | form_submission | other`
+- **Deal stage:** `prospect | offer_sent | interested | objection | validated | lost` (`won` optional)
+- **Campaign type:** `cold_outreach | warm_outreach | content | paid_ads`
+- **Template category:** `cold_email | warm_outreach | content | paid_ads | offer`
+- **Template status:** `draft | approved | archived`
 
 ### API/services
 
-- Services call Supabase directly, return typed results
-- Hooks wrap services with TanStack Query, include `organization_id` in query keys
-- RPC calls for org operations: `create_organization_with_membership`, `validate_invitation_token`, `accept_invitation`
+- Services call Supabase directly and return typed results.
+- Hooks wrap services with TanStack Query.
+- All CRM query keys include `organization_id`.
+- `queryClient.clear()` is mandatory during organization switch.
+- RPC calls for org operations: `create_organization_with_membership`, `validate_invitation_token`, `accept_invitation`.
 
 ### Design system — "Modern Fintech Minimalism"
 
@@ -182,19 +240,19 @@ No cross-feature imports. Shared code in `src/lib/`.
 
 **Color tokens (dark mode default):**
 
-| Token                      | Value     | Usage                                      |
-| -------------------------- | --------- | ------------------------------------------ |
-| `--color-primary`          | `#F7931A` | CTAs, active states ONLY                   |
-| `--color-bg-app`           | `#0E0F12` | App background                             |
-| `--color-bg-surface`       | `#151821` | Card/surface backgrounds                   |
-| `--color-bg-surface-hover` | `#1C2030` | Hover states                               |
-| `--color-border-fintech`   | `#23283A` | Borders, dividers                          |
-| `--color-text-primary`     | `#E6E8EE` | Main text                                  |
-| `--color-text-secondary`   | `#A2A8BD` | Supporting text                            |
-| `--color-text-muted`       | `#6E748A` | Disabled/placeholder                       |
-| `--color-success`          | `#22C55E` | Success                                    |
-| `--color-warning`          | `#EAB308` | Warning (matches Tailwind v4 `yellow-500`) |
-| `--color-error`            | `#EF4444` | Error/destructive                          |
+| Token                      | Value     | Usage                    |
+| -------------------------- | --------- | ------------------------ |
+| `--color-primary`          | `#F7931A` | CTAs, active states only |
+| `--color-bg-app`           | `#0E0F12` | App background           |
+| `--color-bg-surface`       | `#151821` | Card/surface backgrounds |
+| `--color-bg-surface-hover` | `#1C2030` | Hover states             |
+| `--color-border-fintech`   | `#23283A` | Borders, dividers        |
+| `--color-text-primary`     | `#E6E8EE` | Main text                |
+| `--color-text-secondary`   | `#A2A8BD` | Supporting text          |
+| `--color-text-muted`       | `#6E748A` | Disabled/placeholder     |
+| `--color-success`          | `#22C55E` | Success                  |
+| `--color-warning`          | `#EAB308` | Warning                  |
+| `--color-error`            | `#EF4444` | Error/destructive        |
 
 **Light mode overrides:**
 
@@ -208,16 +266,16 @@ No cross-feature imports. Shared code in `src/lib/`.
 | `--color-text-muted`       | `#9AA0A6`   |
 | `--color-border-fintech`   | `#E0E0E0`   |
 
-**Tailwind @theme:** Maps CSS custom properties in `globals.css`. `--color-primary-foreground` is `#000000` (the `@theme` override wins over the `#FFFFFF` token layer value).
+**Tailwind @theme:** `--color-primary-foreground` is `#000000` (component usage must render black text on orange actions).
 
 **Typography:**
 
 | Role           | Font                                | Weight  | Letter Spacing             |
 | -------------- | ----------------------------------- | ------- | -------------------------- |
-| Headings h1–h3 | Satoshi Variable (`--font-heading`) | 500–700 | `-0.02em`                  |
-| Headings h4–h6 | Nunito (`--font-body`)              | 700     | normal                     |
+| Headings h1-h3 | Satoshi Variable (`--font-heading`) | 500-700 | `-0.02em`                  |
+| Headings h4-h6 | Nunito (`--font-body`)              | 700     | normal                     |
 | Body           | Nunito (`--font-body`)              | 400     | normal, `line-height: 1.5` |
-| Code           | JetBrains Mono (`--font-mono`)      | —       | —                          |
+| Code           | JetBrains Mono (`--font-mono`)      | -       | -                          |
 | Numbers/KPIs   | Satoshi                             | medium  | tabular-nums               |
 
 **Shadows (dark mode):**
@@ -229,155 +287,211 @@ No cross-feature imports. Shared code in `src/lib/`.
 --shadow-soft-hover: 0 2px 4px rgba(0, 0, 0, 0.4), 0 12px 28px rgba(0, 0, 0, 0.38);
 ```
 
-**Layout:** Cards 24–32px padding, 12px border-radius. 4px base grid. Radius: `sm: 6px`, `md: 8px`, `lg: 12px`, `xl: 16px`. Transitions: 150–200ms ease-out, no bounce/shake.
+**Layout:** Cards 24-32px padding, 12px border-radius. 4px base grid. Radius: `sm: 6px`, `md: 8px`, `lg: 12px`, `xl: 16px`. Transitions: 150-200ms ease-out.
 
-**CSS utilities (@utility):** `card-surface`, `card-surface-interactive`, `shadow-soft[-sm|-lg]`, `text-fintech-primary|secondary|muted`, `nav-indicator`.
+**CSS utilities (`@utility`):** `card-surface`, `card-surface-interactive`, `shadow-soft[-sm|-lg]`, `text-fintech-primary|secondary|muted`, `nav-indicator`.
 
 **Navigation:** Sidebar darker than content. Active indicator: 3px orange bar, `border-radius: 2px`. Icons: inactive `#7B8198`, active `#F7931A`, size `h-5 w-5`, item height `h-10`.
 
 ### Accessibility
 
-- Muted text (`#6E748A` dark / `#9AA0A6` light) fails AA for normal text — use only for non-essential content
-- White on orange (2.3:1) fails WCAG — always use black on orange
-- Orange on light surfaces (2.3:1) fails — use orange only for non-text elements in light mode
+- Muted text (`#6E748A` dark / `#9AA0A6` light) is only for non-essential content.
+- White on orange fails WCAG; use black text on primary orange.
+- Orange text on light surfaces fails WCAG; use orange only for non-text accents in light mode.
 - Focus: `outline: 2px solid #F7931A; outline-offset: 2px`
 - Buttons: `focus-visible:ring-[3px] focus-visible:ring-ring/50`
+- Deals Kanban must provide non-drag keyboard controls for stage changes.
 
 ## 8. Workflow
 
 - **Branching:** Feature branches off `main`
-- **Commits:** Conventional commits, lowercase subjects (enforced by commitlint via husky + lint-staged)
-- **PR expectations:** Lint clean, typecheck passes, tests pass, RLS on all new tables
-- **Review checklist:**
-  - [ ] No cross-feature imports
-  - [ ] Organization-scoped queries include `organization_id` in query key
-  - [ ] RLS policies on any new/modified tables
-  - [ ] Zod v4 APIs used (not deprecated v3 patterns)
-  - [ ] Design tokens used correctly (not hardcoded colors)
-  - [ ] No `VITE_` prefixed secrets
+- **Commits:** Conventional commits, lowercase subjects (commitlint via husky + lint-staged)
+- **PR expectations:** Lint clean, typecheck passes, tests pass, RLS on all new/changed domain tables
+
+### CRM delivery phases (target)
+
+- **D1:** People + Interactions + CSV Import
+- **D2:** Library (Products + Templates)
+- **D3:** Campaigns
+- **D4:** Deals Kanban + Drawer
+- **D5:** Dashboard
+- **D6:** Polish (CSV export, UX/perf pass, optional quick search)
+
+### Review checklist
+
+- [ ] No cross-feature imports
+- [ ] Organization-scoped query keys include `organization_id`
+- [ ] `queryClient.clear()` on organization switch remains intact
+- [ ] RLS policies exist on all new/modified domain tables
+- [ ] Integrity rules enforce same-org references
+- [ ] Zod v4 APIs used (not deprecated patterns)
+- [ ] Design tokens used correctly (no hardcoded colors)
+- [ ] No secret `VITE_` env vars
+- [ ] Route/nav/header/title mappings updated for any new CRM page
 
 ## 9. Testing
 
 - **Tools:** Vitest ^4.0.18 + @testing-library/react + jsdom
-- **Where tests live:** `tests/unit/`, `tests/features/{auth,organizations}/`, `tests/integration/`
+- **Where tests live:**
+  - `tests/unit/`
+  - `tests/features/{auth,organizations,people,interactions,deals,campaigns,library,dashboard}/`
+  - `tests/integration/`
 - **How to run:** `npm run test` (watch) / `npm run test:coverage` (v8 coverage)
+- **Quality gates:**
+  - `npm run typecheck`
+  - `npm run lint`
+  - `vitest run`
 - **Expectations:**
-  - Tests must pass (`vitest run`)
-  - Vitest v4: `poolOptions` removed — thread/VM options at top level
-  - `vi.restoreAllMocks()` no longer resets `vi.fn()` mocks (only `vi.spyOn()`)
+  - Vitest v4: `poolOptions` removed — thread/VM options live at top level
+  - `vi.restoreAllMocks()` does not reset `vi.fn()` mocks
   - 10-second timeout per test, single fork pool
+  - Core CRM flows have keyboard-accessible paths, including deal stage movement without drag-and-drop
 
 ## 10. Feature implementation playbook
 
-1. Create feature directory: `src/features/<feature-name>/`
-2. Define types: `src/features/<feature-name>/types/index.ts`
-3. Create Zod schemas (v4 APIs): `src/features/<feature-name>/schemas/`
-4. Create Supabase service: `src/features/<feature-name>/services/`
-5. Create TanStack Query hook (include `organization_id` in query keys): `src/features/<feature-name>/hooks/`
-6. Build components: `src/features/<feature-name>/components/`
-7. Barrel export: `src/features/<feature-name>/index.ts`
-8. Create page: `src/pages/<Name>Page.tsx`
-9. Export page: add to `src/pages/index.ts`
-10. Add route constant: `ROUTES.<NAME>` in `src/lib/constants.ts`
-11. Register route: add to children in `src/app/router.tsx`
-12. Add nav item in `src/components/layout/Sidebar.tsx`
-13. Add page title mapping in `src/components/layout/Header.tsx`
-14. Write tests: `tests/features/<feature-name>/`
-15. If DB needed: create migration with RLS policies, run `npm run db:types`
+1. Create or extend feature slice: `src/features/<feature-name>/`
+2. Define types in `types/index.ts`
+3. Define Zod schemas in `schemas/` using Zod v4 APIs
+4. Implement Supabase service layer in `services/`
+5. Implement TanStack Query hooks in `hooks/` with `organization_id` in query keys
+6. Build feature components in `components/`
+7. Export public API via `index.ts`
+8. Add/update page in `src/pages/`
+9. Export page via `src/pages/index.ts`
+10. Add route constants in `src/lib/constants.ts`
+11. Register route in `src/app/router.tsx`
+12. Update nav item in `src/components/layout/Sidebar.tsx` if needed
+13. Update page title mapping in `src/components/layout/Header.tsx`
+14. Add feature tests under `tests/features/<feature-name>/`
+15. If schema changes: add migration + RLS + integrity constraints, then run `npm run db:types`
 
-### Database table template (for future domain tables)
+### Database table template (domain tables)
 
 ```sql
 -- Enable RLS
 ALTER TABLE public.<table> ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: current org only
-CREATE POLICY "select" ON <table> FOR SELECT USING (
+CREATE POLICY "select" ON public.<table> FOR SELECT USING (
   organization_id = public.user_current_organization_id()
 );
+
 -- INSERT: any org user belongs to + audit trail
-CREATE POLICY "insert" ON <table> FOR INSERT WITH CHECK (
-  organization_id = ANY(public.user_organization_ids()) AND auth.uid() = user_id
+CREATE POLICY "insert" ON public.<table> FOR INSERT WITH CHECK (
+  organization_id = ANY(public.user_organization_ids()) AND auth.uid() = created_by
 );
+
 -- UPDATE/DELETE: any org user belongs to
-CREATE POLICY "update" ON <table> FOR UPDATE USING (
+CREATE POLICY "update" ON public.<table> FOR UPDATE USING (
+  organization_id = ANY(public.user_organization_ids())
+);
+
+CREATE POLICY "delete" ON public.<table> FOR DELETE USING (
   organization_id = ANY(public.user_organization_ids())
 );
 ```
 
-### Routing table (scaffolding)
+### Routing table (CRM)
 
-| Route                | Layout     | Notes                        |
-| -------------------- | ---------- | ---------------------------- |
-| `/`                  | —          | Redirect to `/app/dashboard` |
-| `/login`             | AuthLayout |                              |
-| `/signup`            | AuthLayout |                              |
-| `/app/dashboard`     | AppLayout  | Placeholder shell            |
-| `/app/org/settings`  | AppLayout  | Lazy-loaded                  |
-| `/accept-invitation` | —          | Public invitation acceptance |
-| `*`                  | —          | 404 page                     |
+| Route                        | Layout     | Notes                        |
+| ---------------------------- | ---------- | ---------------------------- |
+| `/`                          | -          | Redirect to `/app/dashboard` |
+| `/login`                     | AuthLayout | Public                       |
+| `/signup`                    | AuthLayout | Public                       |
+| `/app/dashboard`             | AppLayout  | CRM overview                 |
+| `/app/people`                | AppLayout  | People list                  |
+| `/app/people/:id`            | AppLayout  | Person hub                   |
+| `/app/campaigns`             | AppLayout  | Campaign list                |
+| `/app/campaigns/:id`         | AppLayout  | Campaign detail              |
+| `/app/deals`                 | AppLayout  | Deals board                  |
+| `/app/library/products`      | AppLayout  | Products list                |
+| `/app/library/products/:id`  | AppLayout  | Product detail               |
+| `/app/library/templates`     | AppLayout  | Templates list               |
+| `/app/library/templates/:id` | AppLayout  | Template detail              |
+| `/app/org/settings`          | AppLayout  | Organization settings        |
+| `/accept-invitation`         | -          | Public invitation acceptance |
+| `*`                          | -          | 404                          |
 
-## 11. Definition of Done
+## 11. Definition of done
 
 - [ ] `npm run lint` passes (zero warnings/errors)
-- [ ] `npm run typecheck` passes (TypeScript strict)
-- [ ] `npm run test` passes
-- [ ] Handles loading, error, and empty states
-- [ ] No secrets committed (no `VITE_` API keys)
-- [ ] RLS enabled on all new tables with correct policies
+- [ ] `npm run typecheck` passes
+- [ ] `vitest run` passes
+- [ ] Loading, error, and empty states handled
+- [ ] No secret credentials committed (`VITE_` exposure check)
+- [ ] RLS enabled on all new domain tables with correct policies
+- [ ] Same-org integrity constraints enforced for cross-table references
+- [ ] Query keys remain org-scoped (`organization_id` included)
 - [ ] Design tokens used (no hardcoded colors)
 - [ ] Conventional commit message (lowercase subject)
-- [ ] Docs updated if needed
+- [ ] Docs updated when contracts change
 
 ## 12. Troubleshooting
 
 ### Common issues
 
-| Issue                                  | Fix                                                                                                         |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `text-m` not working                   | Not a valid Tailwind class — use `text-base` (1rem)                                                         |
-| White text on orange buttons           | Never use — 2.3:1 WCAG fail. `--color-primary-foreground` is `#000000` via Tailwind `@theme`.               |
-| Primary foreground renders wrong color | Token layer has `#FFFFFF`, Tailwind `@theme` overrides to `#000000`. The Tailwind value wins in components. |
-| Nav indicator too rounded              | Uses `border-radius: 2px`, NOT `rounded-full`                                                               |
-| `z.string().email()` type error        | Deprecated in Zod 4 — use `z.email()`                                                                       |
-| `z.uuid()` too strict                  | Zod 4 is strict RFC 9562 — use `z.guid()` for permissive matching                                           |
-| Vitest `poolOptions` error             | Removed in Vitest 4 — move thread/VM options to top level                                                   |
-| Sonner theme not applying              | `data-theme` renamed to `data-sonner-theme` in Sonner v2                                                    |
-| ESLint peer dep conflicts              | Do NOT upgrade to ESLint 10 — ecosystem not ready (Feb 2026). Stay on ESLint 9, globals v15.                |
-| `@types/node` type errors              | Keep v22 — do NOT use v25                                                                                   |
-| lint-staged `--shell` error            | Stay on v15 — v16 removes the `--shell` flag                                                                |
-| Cross-org data visible                 | Check RLS policies use `user_current_organization_id()` for SELECT                                          |
-| Stale data after org switch            | Ensure `queryClient.clear()` is called in `switchOrganization()`                                            |
+| Issue                                       | Fix                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `text-m` not working                        | Invalid Tailwind class. Use `text-base`.                                                                           |
+| White text on orange buttons                | Accessibility failure. Use black foreground (`--color-primary-foreground: #000000`).                               |
+| Nav indicator too rounded                   | Use `border-radius: 2px`, not `rounded-full`.                                                                      |
+| `z.string().email()` type issue             | Zod v4 deprecates this usage. Use `z.email()`.                                                                     |
+| `z.uuid()` rejects permissive input         | Use `z.guid()` where permissive GUID matching is required.                                                         |
+| Vitest `poolOptions` error                  | Move thread/VM options to top-level Vitest config.                                                                 |
+| Sonner theme not applying                   | Use `data-sonner-theme` (v2), not `data-theme`.                                                                    |
+| Cross-org data appears in CRM screens       | Verify RLS policies and ensure query keys include `organization_id`; clear cache on org switch.                    |
+| Interaction insert fails unexpectedly       | `person_id` is required and referenced records must belong to same `organization_id`.                              |
+| Deal create fails validation                | Ensure required fields (`person_id`, `primary_product_id`) are provided and stage matches allowed pipeline values. |
+| Kanban drag works but keyboard path missing | Add explicit non-drag controls for stage change to satisfy accessibility requirements.                             |
+| Stale records after org switch              | Confirm `queryClient.clear()` runs in organization switching flow.                                                 |
 
 ### Reset steps
 
 ```bash
 # Full reset: dependencies + database
 rm -rf node_modules && npm install
-npm run db:reset          # Resets DB, applies all migrations, runs seed.sql
-npm run db:types          # Regenerate TypeScript types
-npm run dev               # Restart dev server
+npm run db:reset
+npm run db:types
+npm run dev
 ```
 
 ### Technology versions (reference)
 
-| Package             | Version  | Critical Notes                     |
+| Package             | Version  | Critical notes                     |
 | ------------------- | -------- | ---------------------------------- |
-| typescript          | ~5.9.3   | May surface new type errors vs 5.6 |
+| typescript          | ~5.9.3   | Strict mode baseline               |
 | vite                | ^7.3.1   | Node >=20.19 or >=22.12            |
 | vitest              | ^4.0.18  | No `poolOptions`                   |
-| zod                 | ^4.3.6   | Major API changes from v3          |
+| zod                 | ^4.3.6   | Use v4 APIs                        |
 | react-hook-form     | ^7.55.0  | Required by @hookform/resolvers v5 |
 | @hookform/resolvers | ^5.2.2   | Supports Zod 4                     |
-| tailwind-merge      | ^3.4.0   | For Tailwind CSS 4 only            |
+| tailwind-merge      | ^3.4.0   | Tailwind CSS 4 compatible          |
 | sonner              | ^2.0.7   | `data-sonner-theme`                |
-| eslint              | ^9.9.1   | Do NOT upgrade to v10              |
-| lint-staged         | ^15.2.10 | Do NOT upgrade to v16              |
+| eslint              | ^9.9.1   | Keep on v9                         |
+| lint-staged         | ^15.2.10 | Keep on v15                        |
 
-### Database schema (scaffolding only)
+### Database schema (base + CRM domain)
 
-Four tables: `profiles`, `organizations`, `organization_members`, `organization_invitations`.
+- **Base tables:** `profiles`, `organizations`, `organization_members`, `organization_invitations`
+- **Domain tables (target):**
+  - `people`
+  - `products`
+  - `templates`
+  - `template_products`
+  - `campaigns`
+  - `campaign_people`
+  - `campaign_products`
+  - `campaign_templates`
+  - `deals`
+  - `interactions`
 
-**Helper functions:** `user_organization_ids()`, `user_current_organization_id()`, `validate_invitation_token()`, `accept_invitation()`, `create_organization_with_membership()`, `handle_new_user()` (trigger), `update_updated_at()` (trigger).
+**Helper functions:** `user_organization_ids()`, `user_current_organization_id()`, `validate_invitation_token()`, `accept_invitation()`, `create_organization_with_membership()`, `handle_new_user()`, `update_updated_at()`.
 
-**Seed data:** `test@example.com` / `password123` — `handle_new_user` trigger auto-creates profile + workspace + membership.
+**Required integrity rules:**
+
+- Cross-table references must remain within the same `organization_id`
+- Interactions require `person_id`
+- If interaction includes `deal_id`, guard that `deal.person_id` matches `interaction.person_id`
+- Deals require person + primary product
+
+**Seed data target (per org):** 20 People, 3 Products, 10 Templates, 4 Campaigns, 15 Deals, 30 Interactions.

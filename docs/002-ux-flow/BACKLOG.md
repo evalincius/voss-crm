@@ -212,13 +212,13 @@ The delivery plan follows the PRD phase intent (People/Interactions -> Library -
 
 **Acceptance criteria**
 
-- [ ] Person create/edit/archive works; archived people are excluded from default list views.
-- [ ] People list supports search (name/email/phone), lifecycle filter, sorting, and pagination/infinite loading.
-- [ ] Person detail renders header, timeline, and action entry points for interaction/deal/campaign.
-- [ ] Interaction create supports required person, allowed types, optional associations, and `next_step_at`.
-- [ ] CSV import provides mapping, preview, and summary counts (`created/updated/skipped/errors`).
-- [ ] CSV dedupe order and default lifecycle behavior match PRD rules.
-- [ ] `people` and `interactions` tables enforce org-scoped RLS and integrity constraints.
+- [x] Person create/edit/archive works; archived people are excluded from default list views.
+- [x] People list supports search (name/email/phone), lifecycle filter, sorting, and pagination/infinite loading.
+- [x] Person detail renders header, timeline, and action entry points for interaction/deal/campaign.
+- [x] Interaction create supports required person, allowed types, optional associations, and `next_step_at`.
+- [x] CSV import provides mapping, preview, and summary counts (`created/updated/skipped/errors`).
+- [x] CSV dedupe order and default lifecycle behavior match PRD rules.
+- [x] `people` and `interactions` tables enforce org-scoped RLS and integrity constraints.
 
 **Manual test steps**
 
@@ -299,6 +299,44 @@ The delivery plan follows the PRD phase intent (People/Interactions -> Library -
 - **Definition of Done**: D1 tests pass locally and cover edge cases.
 - **Acceptance checks**: `vitest run tests/features/people tests/features/interactions`.
 - **Expected files/modules**: `tests/features/people/*`, `tests/features/interactions/*`, `tests/integration/*`.
+
+**Implementation notes**
+
+- Implemented D1 database migration and org-scoped schema:
+  - `supabase/migrations/20260215123000_people_interactions.sql`
+  - Added enums: `person_lifecycle`, `interaction_type`
+  - Added tables: `people`, `interactions`
+  - Added RLS policies (`select/insert/update/delete`) and `update_updated_at` triggers for both tables
+  - Added same-org person integrity via composite FK: `interactions(organization_id, person_id) -> people(organization_id, id)`
+- Updated generated DB typings manually (local `db:types` generation was unavailable in this environment):
+  - `src/lib/database.types.ts`
+- Added org-aware query key helpers for D1:
+  - `src/lib/queryKeys.ts` with `peopleKeys` and `interactionKeys`
+- Implemented People feature slice:
+  - `src/features/people/{types,schemas,services,hooks,components}/*`
+  - Includes create/edit/archive, searchable/filterable/sortable paginated list, and CSV import workflow with mapping + preview + summary
+- Implemented Interactions feature slice:
+  - `src/features/interactions/{types,schemas,services,hooks,components}/*`
+  - Includes interaction creation with required `person_id`, allowed types, optional association IDs, and `next_step_at`
+- Replaced D0 placeholders with D1 pages:
+  - `src/pages/PeoplePage.tsx`
+  - `src/pages/PersonDetailPage.tsx`
+- Added D1 tests and supporting RLS verification checklist:
+  - `tests/features/people/*`
+  - `tests/features/interactions/*`
+  - `tests/integration/d1-rls-verification.md`
+  - Updated: `tests/unit/router/crmRoutes.test.tsx`, `tests/unit/lib/queryKeys.test.ts`
+- Assumptions/decisions applied:
+  - Numbered pagination implemented (not infinite scroll)
+  - CSV parsing uses browser-native `Blob.text()` + internal parser (no new dependency)
+  - Optional interaction association FK/guardrails for `deal_id`, `campaign_id`, `template_id`, `product_id` are intentionally deferred to D2-D4, while D1 enforces required person same-org integrity
+  - Person detail includes action entry points for deal/campaign and empty-state related blocks without implementing D3/D4 feature logic
+- Run/demo commands:
+  1. `npm run typecheck`
+  2. `npm run lint`
+  3. `npm run test -- --run tests/features/people tests/features/interactions tests/unit/router/crmRoutes.test.tsx`
+  4. `npm run test -- --run tests/unit/lib/queryKeys.test.ts`
+  5. `npm run dev` and validate People list/detail, interaction creation, archive filter behavior, and CSV import flow
 
 ### D2
 

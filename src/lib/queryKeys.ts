@@ -20,4 +20,37 @@ export const invitationKeys = createQueryKeys("invitations", {
   validate: (token: string) => [token],
 });
 
-export const queryKeys = mergeQueryKeys(authKeys, organizationKeys, memberKeys, invitationKeys);
+export const peopleKeys = createQueryKeys("people", {
+  listRoot: (organizationId: string) => [`organization_id:${organizationId}`],
+  list: (
+    organizationId: string,
+    params: {
+      search: string;
+      lifecycle: string;
+      archiveFilter: string;
+      sort: string;
+      page: number;
+      pageSize: number;
+    },
+  ) => [`organization_id:${organizationId}`, params],
+  detail: (organizationId: string, personId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+  ],
+});
+
+export const interactionKeys = createQueryKeys("interactions", {
+  byPerson: (organizationId: string, personId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+  ],
+});
+
+export const queryKeys = mergeQueryKeys(
+  authKeys,
+  organizationKeys,
+  memberKeys,
+  invitationKeys,
+  peopleKeys,
+  interactionKeys,
+);

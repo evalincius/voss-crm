@@ -7,6 +7,16 @@ import { AuthContext } from "@/providers/AuthProvider";
 import type { AuthContextValue } from "@/features/auth/types";
 
 function createAuthContextValue(isAuthenticated: boolean): AuthContextValue {
+  const organization = {
+    id: "org-1",
+    name: "Org",
+    slug: "org",
+    created_by: "user-1",
+    logo_url: null,
+    created_at: null,
+    updated_at: null,
+  };
+
   return {
     user: isAuthenticated
       ? ({ id: "user-1", email: "test@example.com" } as AuthContextValue["user"])
@@ -14,8 +24,8 @@ function createAuthContextValue(isAuthenticated: boolean): AuthContextValue {
     session: isAuthenticated ? ({ user: { id: "user-1" } } as AuthContextValue["session"]) : null,
     loading: false,
     signOut: async () => {},
-    organizations: [],
-    currentOrganization: null,
+    organizations: isAuthenticated ? [organization] : [],
+    currentOrganization: isAuthenticated ? organization : null,
     switchOrganization: async () => {},
     refreshOrganizations: async () => {},
   };

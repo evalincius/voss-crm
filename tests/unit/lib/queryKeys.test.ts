@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { invitationKeys, memberKeys, organizationKeys } from "@/lib/queryKeys";
+import {
+  interactionKeys,
+  invitationKeys,
+  memberKeys,
+  organizationKeys,
+  peopleKeys,
+} from "@/lib/queryKeys";
 
 describe("query keys", () => {
   it("includes organization_id in organization detail keys", () => {
@@ -15,5 +21,22 @@ describe("query keys", () => {
   it("includes organization_id in invitations list keys", () => {
     const key = invitationKeys.list("org-xyz").queryKey;
     expect(key).toContain("organization_id:org-xyz");
+  });
+
+  it("includes organization_id in people list keys", () => {
+    const key = peopleKeys.list("org-people", {
+      search: "",
+      lifecycle: "all",
+      archiveFilter: "active",
+      sort: "updated_desc",
+      page: 1,
+      pageSize: 20,
+    }).queryKey;
+    expect(key).toContain("organization_id:org-people");
+  });
+
+  it("includes organization_id in interaction keys", () => {
+    const key = interactionKeys.byPerson("org-i", "person-1").queryKey;
+    expect(key).toContain("organization_id:org-i");
   });
 });

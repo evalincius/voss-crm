@@ -28,6 +28,65 @@ export type Database = {
   };
   public: {
     Tables: {
+      interactions: {
+        Row: {
+          campaign_id: string | null;
+          created_at: string;
+          created_by: string;
+          deal_id: string | null;
+          id: string;
+          next_step_at: string | null;
+          occurred_at: string;
+          organization_id: string;
+          person_id: string;
+          product_id: string | null;
+          summary: string;
+          template_id: string | null;
+          type: Database["public"]["Enums"]["interaction_type"];
+          updated_at: string;
+        };
+        Insert: {
+          campaign_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          deal_id?: string | null;
+          id?: string;
+          next_step_at?: string | null;
+          occurred_at?: string;
+          organization_id: string;
+          person_id: string;
+          product_id?: string | null;
+          summary: string;
+          template_id?: string | null;
+          type: Database["public"]["Enums"]["interaction_type"];
+          updated_at?: string;
+        };
+        Update: {
+          campaign_id?: string | null;
+          created_at?: string;
+          created_by?: string;
+          deal_id?: string | null;
+          id?: string;
+          next_step_at?: string | null;
+          occurred_at?: string;
+          organization_id?: string;
+          person_id?: string;
+          product_id?: string | null;
+          summary?: string;
+          template_id?: string | null;
+          type?: Database["public"]["Enums"]["interaction_type"];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "interactions_people_fk";
+            columns: ["organization_id", "person_id"];
+            isOneToOne: false;
+            referencedRelation: "people";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       organization_invitations: {
         Row: {
           accepted_at: string | null;
@@ -147,6 +206,59 @@ export type Database = {
         };
         Relationships: [];
       };
+      people: {
+        Row: {
+          archived_at: string | null;
+          created_at: string;
+          created_by: string;
+          email: string | null;
+          full_name: string;
+          id: string;
+          is_archived: boolean;
+          lifecycle: Database["public"]["Enums"]["person_lifecycle"];
+          notes: string | null;
+          organization_id: string;
+          phone: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by: string;
+          email?: string | null;
+          full_name: string;
+          id?: string;
+          is_archived?: boolean;
+          lifecycle?: Database["public"]["Enums"]["person_lifecycle"];
+          notes?: string | null;
+          organization_id: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          email?: string | null;
+          full_name?: string;
+          id?: string;
+          is_archived?: boolean;
+          lifecycle?: Database["public"]["Enums"]["person_lifecycle"];
+          notes?: string | null;
+          organization_id?: string;
+          phone?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "people_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       profiles: {
         Row: {
           avatar_url: string | null;
@@ -215,8 +327,10 @@ export type Database = {
       };
     };
     Enums: {
+      interaction_type: "email" | "call" | "dm" | "meeting" | "note" | "form_submission" | "other";
       invitation_status: "pending" | "accepted" | "expired" | "revoked";
       organization_role: "owner" | "member";
+      person_lifecycle: "new" | "contacted" | "engaged" | "customer";
       user_role: "admin" | "user";
     };
     CompositeTypes: {
@@ -346,8 +460,10 @@ export const Constants = {
   },
   public: {
     Enums: {
+      interaction_type: ["email", "call", "dm", "meeting", "note", "form_submission", "other"],
       invitation_status: ["pending", "accepted", "expired", "revoked"],
       organization_role: ["owner", "member"],
+      person_lifecycle: ["new", "contacted", "engaged", "customer"],
       user_role: ["admin", "user"],
     },
   },

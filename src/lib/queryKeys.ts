@@ -40,6 +40,11 @@ export const peopleKeys = createQueryKeys("people", {
     `organization_id:${organizationId}`,
     `person_id:${personId}`,
   ],
+  templatesByPerson: (organizationId: string, personId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+    "templates",
+  ],
 });
 
 export const interactionKeys = createQueryKeys("interactions", {

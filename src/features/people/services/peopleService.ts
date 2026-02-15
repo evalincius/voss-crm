@@ -321,6 +321,75 @@ export async function listAllPeopleForExport(organizationId: string): Promise<Ap
   return { data: data ?? [], error: null };
 }
 
+export interface PersonLinkedTemplate {
+  id: string;
+  title: string;
+  category: string;
+  campaign_name: string;
+}
+
+export async function getPersonLinkedTemplates(
+  organizationId: string,
+  personId: string,
+): Promise<ApiResult<PersonLinkedTemplate[]>> {
+  // First get the campaign IDs this person belongs to
+  const { data: membershipData, error: membershipError } = await supabase
+    .from("campaign_people")
+    .select("campaign_id")
+    .eq("organization_id", organizationId)
+    .eq("person_id", personId);
+
+  if (membershipError) {
+    return { data: null, error: membershipError.message };
+  }
+
+  const campaignIds = (membershipData ?? []).map(
+    (row) => (row as { campaign_id: string }).campaign_id,
+  );
+
+  if (campaignIds.length === 0) {
+    return { data: [], error: null };
+  }
+
+  // Then get templates linked to those campaigns
+  const { data, error } = await supabase
+    .from("campaign_templates")
+    .select(
+      "template_id, templates!campaign_templates_template_fk(id, title, category), campaigns!campaign_templates_campaign_fk(name)",
+    )
+    .eq("organization_id", organizationId)
+    .in("campaign_id", campaignIds);
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  // Deduplicate by template ID, keeping first occurrence
+  const seen = new Set<string>();
+  const templates: PersonLinkedTemplate[] = [];
+
+  for (const row of data ?? []) {
+    const template = (row as { templates?: unknown }).templates as
+      | { id: string; title: string; category: string }
+      | undefined;
+    const campaign = (row as { campaigns?: unknown }).campaigns as { name: string } | undefined;
+
+    if (!template || seen.has(template.id)) {
+      continue;
+    }
+
+    seen.add(template.id);
+    templates.push({
+      id: template.id,
+      title: template.title,
+      category: template.category,
+      campaign_name: campaign?.name ?? "—",
+    });
+  }
+
+  return { data: templates, error: null };
+}
+
 export async function updatePersonFromImport(
   personId: string,
   payload: Partial<Pick<Person, "full_name" | "email" | "phone" | "notes" | "lifecycle">>,

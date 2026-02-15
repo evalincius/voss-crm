@@ -9,6 +9,7 @@ import {
   archivePerson,
   createPerson,
   getPersonById,
+  getPersonLinkedTemplates,
   listPeople,
   unarchivePerson,
   updatePerson,
@@ -166,5 +167,27 @@ export function useUnarchivePerson() {
         queryKey: peopleKeys.detail(person.organization_id, person.id).queryKey,
       });
     },
+  });
+}
+
+export function usePersonLinkedTemplates(organizationId: string | null, personId: string | null) {
+  return useQuery({
+    queryKey:
+      organizationId && personId
+        ? peopleKeys.templatesByPerson(organizationId, personId).queryKey
+        : (["people", "templates", "disabled"] satisfies QueryKey),
+    queryFn: async () => {
+      if (!organizationId || !personId) {
+        throw new Error("Organization and person are required");
+      }
+
+      const result = await getPersonLinkedTemplates(organizationId, personId);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to load linked templates");
+      }
+
+      return result.data;
+    },
+    enabled: !!organizationId && !!personId,
   });
 }

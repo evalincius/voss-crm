@@ -1,17 +1,9 @@
 import { Link } from "react-router";
 import { usePersonCampaignMemberships } from "@/features/campaigns/hooks/useCampaigns";
 import { useDealsByPerson } from "@/features/deals/hooks/useDeals";
+import { usePersonLinkedTemplates } from "@/features/people/hooks/usePeople";
 import { DEAL_STAGE_LABELS, ROUTES } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
-
-function PlaceholderBlock({ title, description }: { title: string; description: string }) {
-  return (
-    <section className="card-surface bg-bg-surface space-y-2 p-6">
-      <h4 className="text-text-primary text-lg font-semibold">{title}</h4>
-      <p className="text-text-secondary text-base">{description}</p>
-    </section>
-  );
-}
 
 interface PersonRelatedPanelsProps {
   organizationId: string;
@@ -21,6 +13,7 @@ interface PersonRelatedPanelsProps {
 export function PersonRelatedPanels({ organizationId, personId }: PersonRelatedPanelsProps) {
   const membershipsQuery = usePersonCampaignMemberships(organizationId, personId);
   const dealsQuery = useDealsByPerson(organizationId, personId);
+  const templatesQuery = usePersonLinkedTemplates(organizationId, personId);
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -121,10 +114,54 @@ export function PersonRelatedPanels({ organizationId, personId }: PersonRelatedP
           </>
         ) : null}
       </section>
-      <PlaceholderBlock
-        title="Templates Used"
-        description="Template usage visibility is introduced once templates and campaign links are implemented."
-      />
+      <section className="card-surface bg-bg-surface space-y-2 p-6">
+        <h4 className="text-text-primary text-lg font-semibold">Templates Used</h4>
+        {templatesQuery.isLoading ? (
+          <p className="text-text-secondary text-base">Loading...</p>
+        ) : null}
+        {templatesQuery.isError ? (
+          <p className="text-destructive text-base">Failed to load templates</p>
+        ) : null}
+        {!templatesQuery.isLoading && !templatesQuery.isError ? (
+          <>
+            {(templatesQuery.data ?? []).length > 0 ? (
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-border-fintech border-b">
+                    <th className="text-text-secondary pb-2 font-medium">Title</th>
+                    <th className="text-text-secondary pb-2 font-medium">Category</th>
+                    <th className="text-text-secondary pb-2 text-right font-medium">Campaign</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {templatesQuery.data?.map((template) => (
+                    <tr key={template.id} className="border-border-fintech border-b last:border-0">
+                      <td className="py-2.5">
+                        <Link
+                          className="text-primary hover:underline"
+                          to={ROUTES.LIBRARY_TEMPLATE_DETAIL.replace(":id", template.id)}
+                        >
+                          {template.title}
+                        </Link>
+                      </td>
+                      <td className="py-2.5">
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {template.category.replace(/_/g, " ")}
+                        </Badge>
+                      </td>
+                      <td className="text-text-secondary py-2.5 text-right">
+                        {template.campaign_name}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <p className="text-text-secondary text-base">No templates linked via campaigns.</p>
+            )}
+          </>
+        ) : null}
+      </section>
     </div>
   );
 }

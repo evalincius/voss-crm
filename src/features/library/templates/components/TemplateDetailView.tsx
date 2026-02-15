@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Archive, Undo2 } from "lucide-react";
-import { Link } from "react-router";
+import { useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,6 @@ import {
   useTemplateUsedInSummary,
 } from "@/features/library/templates/hooks/useTemplates";
 import { TemplateFormDialog } from "@/features/library/templates/components/TemplateFormDialog";
-import { ROUTES } from "@/lib/constants";
 
 interface TemplateDetailViewProps {
   organizationId: string;
@@ -24,6 +23,7 @@ export function TemplateDetailView({
   userId,
   templateId,
 }: TemplateDetailViewProps) {
+  const navigate = useNavigate();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const detailQuery = useTemplateDetail(organizationId, templateId);
   const usedInQuery = useTemplateUsedInSummary(organizationId, templateId);
@@ -54,11 +54,9 @@ export function TemplateDetailView({
 
   return (
     <section className="space-y-4">
-      <Button asChild type="button" variant="secondary" className="w-fit">
-        <Link to={ROUTES.LIBRARY_TEMPLATES}>
-          <ArrowLeft className="h-4 w-4" />
-          Back to Templates
-        </Link>
+      <Button type="button" variant="secondary" className="w-fit" onClick={() => navigate(-1)}>
+        <ArrowLeft className="h-4 w-4" />
+        Back
       </Button>
 
       <h2 className="font-heading text-text-primary text-2xl font-bold">
@@ -127,16 +125,20 @@ export function TemplateDetailView({
                 <p className="text-text-secondary text-base">Loading linked products...</p>
               ) : null}
               {linkedProductNames.length > 0 ? (
-                <ul className="space-y-2">
-                  {linkedProductNames.map((name) => (
-                    <li
-                      key={name}
-                      className="border-border-fintech bg-bg-app rounded-md border px-3 py-2"
-                    >
-                      <p className="text-text-primary text-base">{name}</p>
-                    </li>
-                  ))}
-                </ul>
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-border-fintech border-b">
+                      <th className="text-text-secondary pb-2 font-medium">Name</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {linkedProductNames.map((name) => (
+                      <tr key={name} className="border-border-fintech border-b last:border-0">
+                        <td className="text-text-primary py-2.5">{name}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               ) : (
                 <p className="text-text-secondary text-base">No linked products.</p>
               )}

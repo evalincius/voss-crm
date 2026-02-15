@@ -45,8 +45,14 @@ export interface LinkedTemplateSummary {
   status: string;
 }
 
+export interface LinkedCampaignSummary {
+  id: string;
+  name: string;
+  type: string;
+}
+
 export interface ProductPerformanceSummary {
   stageCounts: ProductStageCounts;
-  relatedCampaignCount: number;
+  relatedCampaigns: LinkedCampaignSummary[];
   linkedTemplates: LinkedTemplateSummary[];
 }

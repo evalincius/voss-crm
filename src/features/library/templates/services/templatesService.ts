@@ -257,11 +257,22 @@ export async function getTemplateUsedInSummary(
     return { data: null, error: interactionsWithDealError.message };
   }
 
+  // D3: count campaigns linked to this template
+  const { count: campaignCount, error: campaignCountError } = await supabase
+    .from("campaign_templates")
+    .select("id", { count: "exact", head: true })
+    .eq("organization_id", organizationId)
+    .eq("template_id", templateId);
+
+  if (campaignCountError) {
+    return { data: null, error: campaignCountError.message };
+  }
+
   return {
     data: {
       interactionsCount: interactionsCount ?? 0,
       interactionsWithDealCount: interactionsWithDealCount ?? 0,
-      campaignCount: 0,
+      campaignCount: campaignCount ?? 0,
       dealsIndirectCount: interactionsWithDealCount ?? 0,
     },
     error: null,

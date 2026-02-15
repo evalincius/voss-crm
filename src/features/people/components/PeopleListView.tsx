@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
-import { Archive, FilePenLine, MessageSquarePlus, Undo2 } from "lucide-react";
+import { Archive, FilePenLine, MessageSquarePlus, Undo2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,7 @@ import {
 import { PeopleFilters } from "@/features/people/components/PeopleFilters";
 import { PersonFormDialog } from "@/features/people/components/PersonFormDialog";
 import { PeopleCsvImportDialog } from "@/features/people/components/PeopleCsvImportDialog";
+import { AddToCampaignDialog } from "@/features/people/components/AddToCampaignDialog";
 import type {
   PeopleArchiveFilter,
   PeopleSort,
@@ -117,6 +118,8 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
   const [isCreateOpen, setIsCreateOpen] = useState(quickAddIntent === QUICK_ADD_INTENTS.PERSON);
   const [editingPerson, setEditingPerson] = useState<Person | null>(null);
   const [isCsvOpen, setIsCsvOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isCampaignDialogOpen, setIsCampaignDialogOpen] = useState(false);
 
   const peopleParams = useMemo(
     () => ({
@@ -210,6 +213,36 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
     }
   }
 
+  const currentPageIds = (peopleQuery.data?.items ?? []).map((p) => p.id);
+  const allOnPageSelected =
+    currentPageIds.length > 0 && currentPageIds.every((id) => selectedIds.has(id));
+
+  function togglePerson(personId: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) {
+        next.add(personId);
+      } else {
+        next.delete(personId);
+      }
+      return next;
+    });
+  }
+
+  function toggleAll(checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of currentPageIds) {
+        if (checked) {
+          next.add(id);
+        } else {
+          next.delete(id);
+        }
+      }
+      return next;
+    });
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -229,6 +262,33 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
           </Button>
         </div>
       </div>
+
+      {selectedIds.size > 0 ? (
+        <div className="card-surface bg-bg-surface flex items-center justify-between p-3">
+          <p className="text-text-primary text-base">
+            {selectedIds.size} {selectedIds.size === 1 ? "person" : "people"} selected
+          </p>
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setIsCampaignDialogOpen(true)}
+            >
+              <Users className="mr-1 h-4 w-4" />
+              Add to Campaign
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {quickAddIntent === QUICK_ADD_INTENTS.INTERACTION ? (
         <div className="card-surface bg-bg-surface p-4">
@@ -277,6 +337,14 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-10">
+                    <input
+                      type="checkbox"
+                      checked={allOnPageSelected}
+                      onChange={(event) => toggleAll(event.target.checked)}
+                      aria-label="Select all on page"
+                    />
+                  </TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
@@ -288,6 +356,14 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
               <TableBody>
                 {peopleQuery.data?.items.map((person) => (
                   <TableRow key={person.id}>
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(person.id)}
+                        onChange={(event) => togglePerson(person.id, event.target.checked)}
+                        aria-label={`Select ${person.full_name}`}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Link
                         className="text-primary text-base"
@@ -387,6 +463,15 @@ export function PeopleListView({ organizationId, userId, quickAddIntent }: Peopl
         onOpenChange={setIsCsvOpen}
         organizationId={organizationId}
         userId={userId}
+      />
+
+      <AddToCampaignDialog
+        open={isCampaignDialogOpen}
+        onOpenChange={setIsCampaignDialogOpen}
+        organizationId={organizationId}
+        userId={userId}
+        personIds={Array.from(selectedIds)}
+        onSuccess={() => setSelectedIds(new Set())}
       />
     </section>
   );

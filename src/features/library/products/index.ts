@@ -21,6 +21,7 @@ export {
   archiveProduct,
   unarchiveProduct,
   listLinkedTemplatesForProduct,
+  listLinkedCampaignsForProduct,
   getProductPerformanceSummary,
 } from "./services/productsService";
 export type {
@@ -29,5 +30,6 @@ export type {
   ProductSort,
   ProductListParams,
   ProductPerformanceSummary,
+  LinkedCampaignSummary,
   DealStage,
 } from "./types";

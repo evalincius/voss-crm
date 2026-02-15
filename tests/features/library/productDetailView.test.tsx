@@ -51,7 +51,7 @@ describe("ProductDetailView", () => {
           validated: 0,
           lost: 0,
         },
-        relatedCampaignCount: 0,
+        relatedCampaigns: [],
         linkedTemplates: [],
       },
     });

@@ -79,26 +79,45 @@ describe("productsService", () => {
   });
 
   it("builds zero-safe product performance summary", async () => {
-    mockQueryResult.mockResolvedValue({
-      data: [
-        {
-          template_id: "template-1",
-          templates: {
-            id: "template-1",
-            title: "Cold opener",
-            category: "cold_email",
-            status: "approved",
+    mockQueryResult
+      .mockResolvedValueOnce({
+        data: [
+          {
+            template_id: "template-1",
+            templates: {
+              id: "template-1",
+              title: "Cold opener",
+              category: "cold_email",
+              status: "approved",
+            },
           },
-        },
-      ],
-      error: null,
-    });
+        ],
+        error: null,
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            campaign_id: "campaign-1",
+            campaigns: { id: "campaign-1", name: "Summer Push", type: "cold_outreach" },
+          },
+          {
+            campaign_id: "campaign-2",
+            campaigns: { id: "campaign-2", name: "Warm Leads", type: "warm_outreach" },
+          },
+        ],
+        error: null,
+      });
 
     const result = await getProductPerformanceSummary("org-1", "product-1");
 
     expect(result.error).toBeNull();
     expect(result.data?.stageCounts.prospect).toBe(0);
     expect(result.data?.linkedTemplates).toHaveLength(1);
-    expect(result.data?.relatedCampaignCount).toBe(0);
+    expect(result.data?.relatedCampaigns).toHaveLength(2);
+    expect(result.data?.relatedCampaigns[0]).toEqual({
+      id: "campaign-1",
+      name: "Summer Push",
+      type: "cold_outreach",
+    });
   });
 });

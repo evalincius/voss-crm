@@ -3,6 +3,7 @@ import type { ApiResult } from "@/types";
 import {
   dealStageValues,
   type CreateProductInput,
+  type LinkedCampaignSummary,
   type LinkedTemplateSummary,
   type Product,
   type ProductListParams,
@@ -196,6 +197,38 @@ export async function listLinkedTemplatesForProduct(
   return { data: linkedTemplates, error: null };
 }
 
+export async function listLinkedCampaignsForProduct(
+  organizationId: string,
+  productId: string,
+): Promise<ApiResult<LinkedCampaignSummary[]>> {
+  const { data, error } = await supabase
+    .from("campaign_products")
+    .select("campaign_id, campaigns!campaign_products_campaign_fk(id, name, type)")
+    .eq("organization_id", organizationId)
+    .eq("product_id", productId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const linked: LinkedCampaignSummary[] = (data ?? [])
+    .map((row) => {
+      const campaign = (row as { campaigns?: unknown }).campaigns as
+        | { id: string; name: string; type: string }
+        | undefined;
+
+      if (!campaign) {
+        return null;
+      }
+
+      return { id: campaign.id, name: campaign.name, type: campaign.type };
+    })
+    .filter((value): value is LinkedCampaignSummary => value !== null);
+
+  return { data: linked, error: null };
+}
+
 export async function getProductPerformanceSummary(
   organizationId: string,
   productId: string,
@@ -209,7 +242,16 @@ export async function getProductPerformanceSummary(
     };
   }
 
-  // D2 ships before deals/campaigns tables; return zero-safe metrics with fixed stage model.
+  const linkedCampaignsResult = await listLinkedCampaignsForProduct(organizationId, productId);
+
+  if (linkedCampaignsResult.error || !linkedCampaignsResult.data) {
+    return {
+      data: null,
+      error: linkedCampaignsResult.error ?? "Failed to load linked campaigns",
+    };
+  }
+
+  // D2 ships before deals table; return zero-safe metrics with fixed stage model.
   const stageCounts = emptyStageCounts();
   for (const stage of dealStageValues) {
     stageCounts[stage] = stageCounts[stage] ?? 0;
@@ -218,7 +260,7 @@ export async function getProductPerformanceSummary(
   return {
     data: {
       stageCounts,
-      relatedCampaignCount: 0,
+      relatedCampaigns: linkedCampaignsResult.data,
       linkedTemplates: linkedTemplatesResult.data,
     },
     error: null,

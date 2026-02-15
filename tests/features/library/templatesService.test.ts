@@ -72,7 +72,8 @@ describe("templatesService", () => {
   it("returns used-in summary from interactions", async () => {
     mockQueryResult
       .mockResolvedValueOnce({ count: 7, error: null })
-      .mockResolvedValueOnce({ count: 3, error: null });
+      .mockResolvedValueOnce({ count: 3, error: null })
+      .mockResolvedValueOnce({ count: 2, error: null });
 
     const result = await getTemplateUsedInSummary("org-1", "template-1");
 
@@ -80,6 +81,6 @@ describe("templatesService", () => {
     expect(result.data?.interactionsCount).toBe(7);
     expect(result.data?.interactionsWithDealCount).toBe(3);
     expect(result.data?.dealsIndirectCount).toBe(3);
-    expect(result.data?.campaignCount).toBe(0);
+    expect(result.data?.campaignCount).toBe(2);
   });
 });

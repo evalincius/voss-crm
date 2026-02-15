@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, Archive, Undo2 } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,7 @@ const stageLabels: Record<string, string> = {
 };
 
 export function ProductDetailView({ organizationId, userId, productId }: ProductDetailViewProps) {
+  const navigate = useNavigate();
   const [isEditOpen, setIsEditOpen] = useState(false);
   const detailQuery = useProductDetail(organizationId, productId);
   const performanceQuery = useProductPerformanceSummary(organizationId, productId);
@@ -54,11 +55,9 @@ export function ProductDetailView({ organizationId, userId, productId }: Product
 
   return (
     <section className="space-y-4">
-      <Button asChild type="button" variant="secondary" className="w-fit">
-        <Link to={ROUTES.LIBRARY_PRODUCTS}>
-          <ArrowLeft className="h-4 w-4" />
-          Back to Products
-        </Link>
+      <Button type="button" variant="secondary" className="w-fit" onClick={() => navigate(-1)}>
+        <ArrowLeft className="h-4 w-4" />
+        Back
       </Button>
 
       <h2 className="font-heading text-text-primary text-2xl font-bold">
@@ -158,34 +157,73 @@ export function ProductDetailView({ organizationId, userId, productId }: Product
               <h3 className="font-heading text-text-primary text-lg font-bold">
                 Related campaigns
               </h3>
-              <p className="text-text-secondary text-base">
-                Campaign links become available in D3. Current count:{" "}
-                {performanceQuery.data?.relatedCampaignCount ?? 0}
-              </p>
+              {performanceQuery.data?.relatedCampaigns.length ? (
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-border-fintech border-b">
+                      <th className="text-text-secondary pb-2 font-medium">Name</th>
+                      <th className="text-text-secondary pb-2 text-right font-medium">Type</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {performanceQuery.data.relatedCampaigns.map((campaign) => (
+                      <tr
+                        key={campaign.id}
+                        className="border-border-fintech border-b last:border-0"
+                      >
+                        <td className="py-2.5">
+                          <Link
+                            className="text-primary hover:underline"
+                            to={`${ROUTES.CAMPAIGNS}/${campaign.id}`}
+                          >
+                            {campaign.name}
+                          </Link>
+                        </td>
+                        <td className="text-text-secondary py-2.5 text-right capitalize">
+                          {campaign.type.replace(/_/g, " ")}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <p className="text-text-secondary text-base">No campaigns linked yet.</p>
+              )}
             </div>
           </div>
 
           <div className="card-surface bg-bg-surface space-y-3 p-4">
             <h3 className="font-heading text-text-primary text-lg font-bold">Linked templates</h3>
             {performanceQuery.data?.linkedTemplates.length ? (
-              <ul className="space-y-2">
-                {performanceQuery.data.linkedTemplates.map((template) => (
-                  <li
-                    key={template.id}
-                    className="border-border-fintech bg-bg-app rounded-md border px-3 py-2"
-                  >
-                    <Link
-                      className="text-primary text-base"
-                      to={`${ROUTES.LIBRARY_TEMPLATES}/${template.id}`}
-                    >
-                      {template.title}
-                    </Link>
-                    <p className="text-text-secondary text-sm">
-                      {template.category} · {template.status}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-border-fintech border-b">
+                    <th className="text-text-secondary pb-2 font-medium">Name</th>
+                    <th className="text-text-secondary pb-2 font-medium">Category</th>
+                    <th className="text-text-secondary pb-2 text-right font-medium">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {performanceQuery.data.linkedTemplates.map((template) => (
+                    <tr key={template.id} className="border-border-fintech border-b last:border-0">
+                      <td className="py-2.5">
+                        <Link
+                          className="text-primary hover:underline"
+                          to={`${ROUTES.LIBRARY_TEMPLATES}/${template.id}`}
+                        >
+                          {template.title}
+                        </Link>
+                      </td>
+                      <td className="text-text-secondary py-2.5 capitalize">
+                        {template.category.replace(/_/g, " ")}
+                      </td>
+                      <td className="text-text-secondary py-2.5 text-right capitalize">
+                        {template.status}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             ) : (
               <p className="text-text-secondary text-base">No templates linked yet.</p>
             )}

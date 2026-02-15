@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
-import { Link, useLocation, useParams } from "react-router";
+import { useLocation, useNavigate, useParams } from "react-router";
 import { Button } from "@/components/ui/button";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -9,7 +9,6 @@ import { PersonDetailHeader } from "@/features/people/components/PersonDetailHea
 import { PersonRelatedPanels } from "@/features/people/components/PersonRelatedPanels";
 import { InteractionsTimeline } from "@/features/interactions/components/InteractionsTimeline";
 import { InteractionFormDialog } from "@/features/interactions/components/InteractionFormDialog";
-import { ROUTES } from "@/lib/constants";
 
 function shouldOpenInteractionDialog(state: unknown): boolean {
   if (!state || typeof state !== "object") {
@@ -23,9 +22,9 @@ export function PersonDetailPage() {
   const { id } = useParams();
   const location = useLocation();
   const { currentOrganization, user } = useAuth();
+  const navigate = useNavigate();
   const [isInteractionDialogOpen, setIsInteractionDialogOpen] = useState(false);
   const personQuery = usePersonDetail(currentOrganization?.id ?? null, id ?? null);
-  const backToPeoplePath = `${ROUTES.PEOPLE}${location.search}`;
 
   useEffect(() => {
     if (shouldOpenInteractionDialog(location.state)) {
@@ -39,11 +38,9 @@ export function PersonDetailPage() {
 
   return (
     <section className="space-y-4">
-      <Button asChild type="button" variant="secondary" className="w-fit">
-        <Link to={backToPeoplePath}>
-          <ArrowLeft className="h-4 w-4" />
-          Back to People
-        </Link>
+      <Button type="button" variant="secondary" className="w-fit" onClick={() => navigate(-1)}>
+        <ArrowLeft className="h-4 w-4" />
+        Back
       </Button>
 
       <h2 className="font-heading text-text-primary text-2xl font-bold">Person Detail</h2>
@@ -72,7 +69,10 @@ export function PersonDetailPage() {
             organizationId={currentOrganization.id}
             personId={personQuery.data.id}
           />
-          <PersonRelatedPanels />
+          <PersonRelatedPanels
+            organizationId={currentOrganization.id}
+            personId={personQuery.data.id}
+          />
           <InteractionFormDialog
             open={isInteractionDialogOpen}
             onOpenChange={setIsInteractionDialogOpen}

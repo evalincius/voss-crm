@@ -28,6 +28,176 @@ export type Database = {
   };
   public: {
     Tables: {
+      campaign_people: {
+        Row: {
+          campaign_id: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          person_id: string;
+        };
+        Insert: {
+          campaign_id: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          person_id: string;
+        };
+        Update: {
+          campaign_id?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          person_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_people_campaign_fk";
+            columns: ["organization_id", "campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "campaign_people_person_fk";
+            columns: ["organization_id", "person_id"];
+            isOneToOne: false;
+            referencedRelation: "people";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      campaign_products: {
+        Row: {
+          campaign_id: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          product_id: string;
+        };
+        Insert: {
+          campaign_id: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          product_id: string;
+        };
+        Update: {
+          campaign_id?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          product_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_products_campaign_fk";
+            columns: ["organization_id", "campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "campaign_products_product_fk";
+            columns: ["organization_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      campaign_templates: {
+        Row: {
+          campaign_id: string;
+          created_at: string;
+          created_by: string;
+          id: string;
+          organization_id: string;
+          template_id: string;
+        };
+        Insert: {
+          campaign_id: string;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          organization_id: string;
+          template_id: string;
+        };
+        Update: {
+          campaign_id?: string;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          organization_id?: string;
+          template_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaign_templates_campaign_fk";
+            columns: ["organization_id", "campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "campaign_templates_template_fk";
+            columns: ["organization_id", "template_id"];
+            isOneToOne: false;
+            referencedRelation: "templates";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
+      campaigns: {
+        Row: {
+          archived_at: string | null;
+          created_at: string;
+          created_by: string;
+          id: string;
+          is_archived: boolean;
+          name: string;
+          organization_id: string;
+          type: Database["public"]["Enums"]["campaign_type"];
+          updated_at: string;
+        };
+        Insert: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by: string;
+          id?: string;
+          is_archived?: boolean;
+          name: string;
+          organization_id: string;
+          type: Database["public"]["Enums"]["campaign_type"];
+          updated_at?: string;
+        };
+        Update: {
+          archived_at?: string | null;
+          created_at?: string;
+          created_by?: string;
+          id?: string;
+          is_archived?: boolean;
+          name?: string;
+          organization_id?: string;
+          type?: Database["public"]["Enums"]["campaign_type"];
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "campaigns_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       interactions: {
         Row: {
           campaign_id: string | null;
@@ -78,6 +248,13 @@ export type Database = {
           updated_at?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "interactions_campaigns_fk";
+            columns: ["organization_id", "campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["organization_id", "id"];
+          },
           {
             foreignKeyName: "interactions_people_fk";
             columns: ["organization_id", "person_id"];
@@ -471,6 +648,7 @@ export type Database = {
       };
     };
     Enums: {
+      campaign_type: "cold_outreach" | "warm_outreach" | "content" | "paid_ads";
       interaction_type: "email" | "call" | "dm" | "meeting" | "note" | "form_submission" | "other";
       invitation_status: "pending" | "accepted" | "expired" | "revoked";
       organization_role: "owner" | "member";
@@ -606,6 +784,7 @@ export const Constants = {
   },
   public: {
     Enums: {
+      campaign_type: ["cold_outreach", "warm_outreach", "content", "paid_ads"],
       interaction_type: ["email", "call", "dm", "meeting", "note", "form_submission", "other"],
       invitation_status: ["pending", "accepted", "expired", "revoked"],
       organization_role: ["owner", "member"],

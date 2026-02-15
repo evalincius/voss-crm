@@ -99,6 +99,48 @@ export const templateKeys = createQueryKeys("templates", {
   ],
 });
 
+export const campaignKeys = createQueryKeys("campaigns", {
+  listRoot: (organizationId: string) => [`organization_id:${organizationId}`],
+  list: (
+    organizationId: string,
+    params: {
+      search: string;
+      archiveFilter: string;
+      typeFilter: string;
+      sort: string;
+    },
+  ) => [`organization_id:${organizationId}`, params],
+  detail: (organizationId: string, campaignId: string) => [
+    `organization_id:${organizationId}`,
+    `campaign_id:${campaignId}`,
+  ],
+  members: (organizationId: string, campaignId: string) => [
+    `organization_id:${organizationId}`,
+    `campaign_id:${campaignId}`,
+    "members",
+  ],
+  metrics: (organizationId: string, campaignId: string) => [
+    `organization_id:${organizationId}`,
+    `campaign_id:${campaignId}`,
+    "metrics",
+  ],
+  productLinks: (organizationId: string, campaignId: string) => [
+    `organization_id:${organizationId}`,
+    `campaign_id:${campaignId}`,
+    "product-links",
+  ],
+  templateLinks: (organizationId: string, campaignId: string) => [
+    `organization_id:${organizationId}`,
+    `campaign_id:${campaignId}`,
+    "template-links",
+  ],
+  byPerson: (organizationId: string, personId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+    "campaign-memberships",
+  ],
+});
+
 export const queryKeys = mergeQueryKeys(
   authKeys,
   organizationKeys,
@@ -108,4 +150,5 @@ export const queryKeys = mergeQueryKeys(
   interactionKeys,
   productKeys,
   templateKeys,
+  campaignKeys,
 );

@@ -26,6 +26,8 @@
     - Manual conversion only (deals created by explicit user action)
     - People-first linking (interactions require `person_id`)
     - Keyboard fallback for deal stage movement (non-drag path)
+  - Use `navigate(-1)` (from `useNavigate`) for detail-page back buttons instead of hardcoded `<Link to={ROUTES.LIST}>` — users may arrive from different pages, so "Back" should respect browser history
+  - Use `"Name"` as the first column header in detail-page related-entity tables — the card title already establishes the entity type (e.g. "Linked products"), so repeating the noun ("Product") in the column header is redundant
 
 - **Don't:**
   - Import across features — shared code goes in `src/lib/`

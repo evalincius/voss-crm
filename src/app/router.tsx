@@ -1,14 +1,24 @@
 import { createBrowserRouter, Navigate } from "react-router";
+import type { RouteObject } from "react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { ProtectedRoute } from "@/components/shared/ProtectedRoute";
 import { ROUTES } from "@/lib/constants";
+import { CampaignDetailPage } from "@/pages/CampaignDetailPage";
+import { CampaignsPage } from "@/pages/CampaignsPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { DealsPage } from "@/pages/DealsPage";
+import { LibraryProductDetailPage } from "@/pages/LibraryProductDetailPage";
+import { LibraryProductsPage } from "@/pages/LibraryProductsPage";
+import { LibraryTemplateDetailPage } from "@/pages/LibraryTemplateDetailPage";
+import { LibraryTemplatesPage } from "@/pages/LibraryTemplatesPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+import { PeoplePage } from "@/pages/PeoplePage";
+import { PersonDetailPage } from "@/pages/PersonDetailPage";
 
-export const router = createBrowserRouter([
+export const appRoutes: RouteObject[] = [
   {
     path: ROUTES.HOME,
     element: <Navigate to={ROUTES.DASHBOARD} replace />,
@@ -28,6 +38,15 @@ export const router = createBrowserRouter([
     ),
     children: [
       { path: ROUTES.DASHBOARD, element: <DashboardPage /> },
+      { path: ROUTES.PEOPLE, element: <PeoplePage /> },
+      { path: ROUTES.PERSON_DETAIL, element: <PersonDetailPage /> },
+      { path: ROUTES.CAMPAIGNS, element: <CampaignsPage /> },
+      { path: ROUTES.CAMPAIGN_DETAIL, element: <CampaignDetailPage /> },
+      { path: ROUTES.DEALS, element: <DealsPage /> },
+      { path: ROUTES.LIBRARY_PRODUCTS, element: <LibraryProductsPage /> },
+      { path: ROUTES.LIBRARY_PRODUCT_DETAIL, element: <LibraryProductDetailPage /> },
+      { path: ROUTES.LIBRARY_TEMPLATES, element: <LibraryTemplatesPage /> },
+      { path: ROUTES.LIBRARY_TEMPLATE_DETAIL, element: <LibraryTemplateDetailPage /> },
       {
         path: ROUTES.ORG_SETTINGS,
         lazy: async () => {
@@ -48,4 +67,6 @@ export const router = createBrowserRouter([
     path: "*",
     element: <NotFoundPage />,
   },
-]);
+];
+
+export const router = createBrowserRouter(appRoutes);

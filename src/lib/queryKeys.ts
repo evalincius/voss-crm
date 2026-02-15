@@ -7,16 +7,16 @@ export const authKeys = createQueryKeys("auth", {
 
 export const organizationKeys = createQueryKeys("organizations", {
   all: null,
-  detail: (orgId: string) => [orgId],
+  detail: (organizationId: string) => [`organization_id:${organizationId}`],
   current: null,
 });
 
 export const memberKeys = createQueryKeys("members", {
-  list: (orgId: string) => [orgId],
+  list: (organizationId: string) => [`organization_id:${organizationId}`],
 });
 
 export const invitationKeys = createQueryKeys("invitations", {
-  list: (orgId: string) => [orgId],
+  list: (organizationId: string) => [`organization_id:${organizationId}`],
   validate: (token: string) => [token],
 });
 

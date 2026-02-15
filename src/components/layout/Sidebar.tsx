@@ -1,18 +1,56 @@
 import { useLocation, Link } from "react-router";
-import { LayoutDashboard, ChevronsLeft, ChevronsRight } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Megaphone,
+  BriefcaseBusiness,
+  Library,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ROUTES, APP_NAME, SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from "@/lib/constants";
 import type { NavItem } from "@/types";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { OrgSwitcher } from "@/features/organizations/components";
 
-const navItems: NavItem[] = [
+interface SidebarNavItem extends NavItem {
+  matchPrefixes?: string[];
+}
+
+const navItems: SidebarNavItem[] = [
   {
     title: "Dashboard",
     href: ROUTES.DASHBOARD,
     icon: LayoutDashboard,
   },
+  {
+    title: "People",
+    href: ROUTES.PEOPLE,
+    icon: Users,
+  },
+  {
+    title: "Campaigns",
+    href: ROUTES.CAMPAIGNS,
+    icon: Megaphone,
+  },
+  {
+    title: "Deals",
+    href: ROUTES.DEALS,
+    icon: BriefcaseBusiness,
+  },
+  {
+    title: "Library",
+    href: ROUTES.LIBRARY_PRODUCTS,
+    icon: Library,
+    matchPrefixes: [ROUTES.LIBRARY_PRODUCTS, ROUTES.LIBRARY_TEMPLATES],
+  },
 ];
+
+function isRouteActive(pathname: string, item: SidebarNavItem): boolean {
+  const prefixes = item.matchPrefixes ?? [item.href];
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -48,7 +86,7 @@ export function Sidebar({ isCollapsed, onToggleCollapse }: SidebarProps) {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-2 py-3">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.href;
+          const isActive = isRouteActive(location.pathname, item);
           const Icon = item.icon;
 
           const linkContent = (

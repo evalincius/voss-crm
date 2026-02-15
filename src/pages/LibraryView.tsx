@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useLocation, useSearchParams } from "react-router";
+import { Boxes, FileText } from "lucide-react";
 import { PageLoader } from "@/components/shared/PageLoader";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/features/auth/hooks/useAuth";
@@ -76,6 +77,8 @@ export function LibraryView() {
   }
 
   const templateQuickAddProps = quickAddIntent ? { quickAddIntent } : {};
+  const tabTriggerClassName =
+    "border-border-fintech/50 hover:text-text-primary data-[state=active]:border-border-fintech data-[state=active]:border-b-primary h-10 min-w-[152px] gap-2 rounded-md border border-transparent px-4 text-base font-semibold text-text-secondary data-[state=active]:border-b-2 data-[state=active]:bg-bg-surface-hover data-[state=active]:text-text-primary data-[state=active]:shadow-soft-sm";
 
   return (
     <section className="space-y-4">
@@ -87,12 +90,15 @@ export function LibraryView() {
       </div>
 
       <Tabs value={currentTab} onValueChange={handleTabChange}>
-        <TabsList className="bg-bg-surface border-border-fintech h-10 justify-start border p-1">
-          <TabsTrigger value="products" className="text-base">
-            Products
+        <TabsList className="bg-bg-app/70 border-border-fintech h-12 gap-1 self-start rounded-lg border p-1">
+          <TabsTrigger value="products" className={tabTriggerClassName}>
+            <Boxes className="h-4 w-4" />
+            <span>Products</span>
           </TabsTrigger>
-          <TabsTrigger value="templates" className="text-base">
-            Templates
+
+          <TabsTrigger value="templates" className={tabTriggerClassName}>
+            <FileText className="h-4 w-4" />
+            <span>Templates</span>
           </TabsTrigger>
         </TabsList>
       </Tabs>

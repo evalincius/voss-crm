@@ -1,4 +1,5 @@
 import type { Tables } from "@/lib/database.types";
+import { DEAL_STAGE_VALUES } from "@/lib/constants";
 
 export type Product = Tables<"products">;
 
@@ -25,14 +26,7 @@ export interface UpdateProductInput {
   description: string | null;
 }
 
-export const dealStageValues = [
-  "prospect",
-  "offer_sent",
-  "interested",
-  "objection",
-  "validated",
-  "lost",
-] as const;
+export const dealStageValues = DEAL_STAGE_VALUES;
 
 export type DealStage = (typeof dealStageValues)[number];
 

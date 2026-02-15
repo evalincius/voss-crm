@@ -29,6 +29,9 @@ export default defineConfig({
           if (id.includes("/@radix-ui/")) {
             return "radix";
           }
+          if (id.includes("/@dnd-kit/")) {
+            return "dndkit";
+          }
           if (
             id.includes("/react-hook-form/") ||
             id.includes("/@hookform/") ||

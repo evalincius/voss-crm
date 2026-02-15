@@ -36,5 +36,23 @@ export interface QuickAddNavigationState {
   };
 }
 
+export const DEAL_STAGE_VALUES = [
+  "prospect",
+  "offer_sent",
+  "interested",
+  "objection",
+  "validated",
+  "lost",
+] as const;
+
+export const DEAL_STAGE_LABELS: Record<(typeof DEAL_STAGE_VALUES)[number], string> = {
+  prospect: "Prospect",
+  offer_sent: "Offer Sent",
+  interested: "Interested",
+  objection: "Objection",
+  validated: "Validated",
+  lost: "Lost",
+};
+
 export const SIDEBAR_WIDTH = 240;
 export const SIDEBAR_COLLAPSED_WIDTH = 64;

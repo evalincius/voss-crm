@@ -1,8 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import type { ApiResult } from "@/types";
 import {
-  dealStageValues,
   type CreateProductInput,
+  type DealStage,
   type LinkedCampaignSummary,
   type LinkedTemplateSummary,
   type Product,
@@ -251,10 +251,22 @@ export async function getProductPerformanceSummary(
     };
   }
 
-  // D2 ships before deals table; return zero-safe metrics with fixed stage model.
+  const { data: dealRows, error: dealsError } = await supabase
+    .from("deals")
+    .select("stage")
+    .eq("organization_id", organizationId)
+    .eq("product_id", productId);
+
+  if (dealsError) {
+    return { data: null, error: dealsError.message };
+  }
+
   const stageCounts = emptyStageCounts();
-  for (const stage of dealStageValues) {
-    stageCounts[stage] = stageCounts[stage] ?? 0;
+  for (const row of dealRows ?? []) {
+    const stage = (row as { stage: string }).stage as DealStage;
+    if (stage in stageCounts) {
+      stageCounts[stage] += 1;
+    }
   }
 
   return {

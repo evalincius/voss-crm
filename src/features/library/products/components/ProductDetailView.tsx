@@ -139,17 +139,25 @@ export function ProductDetailView({ organizationId, userId, productId }: Product
                 </p>
               ) : null}
               {performanceQuery.data ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(performanceQuery.data.stageCounts).map(([stage, count]) => (
-                    <div
-                      key={stage}
-                      className="border-border-fintech bg-bg-app rounded-md border px-3 py-2"
-                    >
-                      <p className="text-text-secondary text-sm">{stageLabels[stage] ?? stage}</p>
-                      <p className="text-text-primary text-base font-semibold">{count}</p>
-                    </div>
-                  ))}
-                </div>
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(performanceQuery.data.stageCounts).map(([stage, count]) => (
+                      <div
+                        key={stage}
+                        className="border-border-fintech bg-bg-app rounded-md border px-3 py-2"
+                      >
+                        <p className="text-text-secondary text-sm">{stageLabels[stage] ?? stage}</p>
+                        <p className="text-text-primary text-base font-semibold">{count}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <Link
+                    to={`${ROUTES.DEALS}?product_id=${encodeURIComponent(productId)}`}
+                    className="text-primary inline-block text-sm hover:underline"
+                  >
+                    View all deals for this product &rarr;
+                  </Link>
+                </>
               ) : null}
             </div>
 

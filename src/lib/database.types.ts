@@ -198,6 +198,83 @@ export type Database = {
           },
         ];
       };
+      deals: {
+        Row: {
+          campaign_id: string | null;
+          created_at: string;
+          created_by: string;
+          currency: string | null;
+          id: string;
+          next_step_at: string | null;
+          notes: string | null;
+          organization_id: string;
+          person_id: string;
+          product_id: string;
+          stage: Database["public"]["Enums"]["deal_stage"];
+          updated_at: string;
+          value: number | null;
+        };
+        Insert: {
+          campaign_id?: string | null;
+          created_at?: string;
+          created_by: string;
+          currency?: string | null;
+          id?: string;
+          next_step_at?: string | null;
+          notes?: string | null;
+          organization_id: string;
+          person_id: string;
+          product_id: string;
+          stage?: Database["public"]["Enums"]["deal_stage"];
+          updated_at?: string;
+          value?: number | null;
+        };
+        Update: {
+          campaign_id?: string | null;
+          created_at?: string;
+          created_by?: string;
+          currency?: string | null;
+          id?: string;
+          next_step_at?: string | null;
+          notes?: string | null;
+          organization_id?: string;
+          person_id?: string;
+          product_id?: string;
+          stage?: Database["public"]["Enums"]["deal_stage"];
+          updated_at?: string;
+          value?: number | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "deals_campaign_fk";
+            columns: ["organization_id", "campaign_id"];
+            isOneToOne: false;
+            referencedRelation: "campaigns";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "deals_organization_id_fkey";
+            columns: ["organization_id"];
+            isOneToOne: false;
+            referencedRelation: "organizations";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "deals_person_fk";
+            columns: ["organization_id", "person_id"];
+            isOneToOne: false;
+            referencedRelation: "people";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "deals_product_fk";
+            columns: ["organization_id", "product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["organization_id", "id"];
+          },
+        ];
+      };
       interactions: {
         Row: {
           campaign_id: string | null;
@@ -253,6 +330,13 @@ export type Database = {
             columns: ["organization_id", "campaign_id"];
             isOneToOne: false;
             referencedRelation: "campaigns";
+            referencedColumns: ["organization_id", "id"];
+          },
+          {
+            foreignKeyName: "interactions_deals_fk";
+            columns: ["organization_id", "deal_id"];
+            isOneToOne: false;
+            referencedRelation: "deals";
             referencedColumns: ["organization_id", "id"];
           },
           {
@@ -649,6 +733,7 @@ export type Database = {
     };
     Enums: {
       campaign_type: "cold_outreach" | "warm_outreach" | "content" | "paid_ads";
+      deal_stage: "prospect" | "offer_sent" | "interested" | "objection" | "validated" | "lost";
       interaction_type: "email" | "call" | "dm" | "meeting" | "note" | "form_submission" | "other";
       invitation_status: "pending" | "accepted" | "expired" | "revoked";
       organization_role: "owner" | "member";
@@ -785,6 +870,7 @@ export const Constants = {
   public: {
     Enums: {
       campaign_type: ["cold_outreach", "warm_outreach", "content", "paid_ads"],
+      deal_stage: ["prospect", "offer_sent", "interested", "objection", "validated", "lost"],
       interaction_type: ["email", "call", "dm", "meeting", "note", "form_submission", "other"],
       invitation_status: ["pending", "accepted", "expired", "revoked"],
       organization_role: ["owner", "member"],

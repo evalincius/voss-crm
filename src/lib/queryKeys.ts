@@ -141,6 +141,36 @@ export const campaignKeys = createQueryKeys("campaigns", {
   ],
 });
 
+export const dealKeys = createQueryKeys("deals", {
+  listRoot: (organizationId: string) => [`organization_id:${organizationId}`],
+  list: (
+    organizationId: string,
+    params: {
+      productId: string | null;
+      personSearch: string;
+    },
+  ) => [`organization_id:${organizationId}`, params],
+  detail: (organizationId: string, dealId: string) => [
+    `organization_id:${organizationId}`,
+    `deal_id:${dealId}`,
+  ],
+  byPerson: (organizationId: string, personId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+  ],
+  duplicateCheck: (organizationId: string, personId: string, productId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+    `product_id:${productId}`,
+    "duplicate-check",
+  ],
+  interactions: (organizationId: string, dealId: string) => [
+    `organization_id:${organizationId}`,
+    `deal_id:${dealId}`,
+    "interactions",
+  ],
+});
+
 export const queryKeys = mergeQueryKeys(
   authKeys,
   organizationKeys,
@@ -151,4 +181,5 @@ export const queryKeys = mergeQueryKeys(
   productKeys,
   templateKeys,
   campaignKeys,
+  dealKeys,
 );

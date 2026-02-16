@@ -199,14 +199,8 @@ export function useUpdateDealStage() {
 
       return result.data;
     },
-    onMutate: async (input) => {
-      // Optimistic update: cancel outgoing queries and update cache
-      await queryClient.cancelQueries({
-        queryKey: dealKeys.list._def,
-        predicate: (query) =>
-          Array.isArray(query.queryKey) &&
-          query.queryKey.includes(`organization_id:${input.organizationId}`),
-      });
+    onMutate: (input) => {
+      const optimisticUpdatedAt = new Date().toISOString();
 
       // Snapshot all matching list queries
       const matchingQueries = queryClient.getQueriesData<DealCardData[]>({
@@ -219,12 +213,28 @@ export function useUpdateDealStage() {
       // Optimistically update deals in list caches
       for (const [queryKey, data] of matchingQueries) {
         if (data) {
-          queryClient.setQueryData(
-            queryKey,
-            data.map((deal) => (deal.id === input.dealId ? { ...deal, stage: input.stage } : deal)),
-          );
+          const nextData = data
+            .map((deal) =>
+              deal.id === input.dealId
+                ? { ...deal, stage: input.stage, updated_at: optimisticUpdatedAt }
+                : deal,
+            )
+            .sort(
+              (left, right) =>
+                new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime(),
+            );
+
+          queryClient.setQueryData(queryKey, nextData);
         }
       }
+
+      // Cancel in-flight fetches after optimistic cache write to avoid overwriting with stale responses.
+      void queryClient.cancelQueries({
+        queryKey: dealKeys.list._def,
+        predicate: (query) =>
+          Array.isArray(query.queryKey) &&
+          query.queryKey.includes(`organization_id:${input.organizationId}`),
+      });
 
       return { matchingQueries };
     },

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -6,31 +6,79 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  type DropAnimation,
+  type DragCancelEvent,
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { DEAL_STAGE_VALUES } from "@/lib/constants";
 import { DealColumn } from "./DealColumn";
-import { DealCard } from "./DealCard";
+import { DealCardPreview } from "./DealCard";
 import type { DealCardData, DealStage } from "@/features/deals/types";
 
 interface DealsBoardProps {
   deals: DealCardData[];
   onSelectDeal: (dealId: string) => void;
-  onStageChange: (dealId: string, stage: DealStage) => void;
+  onStageChange: (dealId: string, stage: DealStage) => Promise<void> | void;
 }
+
+const dropAnimation: DropAnimation = {
+  duration: 200,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+};
 
 export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardProps) {
   const [activeDeal, setActiveDeal] = useState<DealCardData | null>(null);
+  const [pendingStages, setPendingStages] = useState<Record<string, DealStage>>({});
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor),
   );
 
-  const dealsByStage = Object.fromEntries(
-    DEAL_STAGE_VALUES.map((stage) => [stage, deals.filter((d) => d.stage === stage)]),
-  ) as Record<DealStage, DealCardData[]>;
+  const displayDeals = useMemo(
+    () =>
+      deals.map((deal) => {
+        const pendingStage = pendingStages[deal.id];
+        return pendingStage ? { ...deal, stage: pendingStage } : deal;
+      }),
+    [deals, pendingStages],
+  );
+
+  const dealsByStage = useMemo(
+    () =>
+      Object.fromEntries(
+        DEAL_STAGE_VALUES.map((stage) => [
+          stage,
+          displayDeals.filter((deal) => deal.stage === stage),
+        ]),
+      ) as Record<DealStage, DealCardData[]>,
+    [displayDeals],
+  );
+
+  useEffect(() => {
+    setPendingStages((current) => {
+      if (Object.keys(current).length === 0) {
+        return current;
+      }
+
+      const remaining: Record<string, DealStage> = {};
+      let changed = false;
+
+      for (const [dealId, pendingStage] of Object.entries(current)) {
+        const currentDeal = deals.find((deal) => deal.id === dealId);
+
+        if (!currentDeal || currentDeal.stage === pendingStage) {
+          changed = true;
+          continue;
+        }
+
+        remaining[dealId] = pendingStage;
+      }
+
+      return changed ? remaining : current;
+    });
+  }, [deals]);
 
   function handleDragStart(event: DragStartEvent) {
     const deal = (event.active.data.current as { deal?: DealCardData })?.deal;
@@ -50,14 +98,53 @@ export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardPro
 
     if (!DEAL_STAGE_VALUES.includes(targetStage)) return;
 
-    const currentDeal = deals.find((d) => d.id === dealId);
+    const currentDeal = displayDeals.find((d) => d.id === dealId);
     if (currentDeal && currentDeal.stage !== targetStage) {
-      onStageChange(dealId, targetStage);
+      setPendingStages((current) => ({ ...current, [dealId]: targetStage }));
+
+      let result: Promise<void> | void;
+      try {
+        result = onStageChange(dealId, targetStage);
+      } catch {
+        setPendingStages((current) => {
+          if (!(dealId in current)) {
+            return current;
+          }
+
+          const next = { ...current };
+          delete next[dealId];
+          return next;
+        });
+        return;
+      }
+
+      void Promise.resolve(result)
+        .catch(() => undefined)
+        .finally(() => {
+          setPendingStages((current) => {
+            if (!(dealId in current)) {
+              return current;
+            }
+
+            const next = { ...current };
+            delete next[dealId];
+            return next;
+          });
+        });
     }
   }
 
+  function handleDragCancel(_: DragCancelEvent) {
+    setActiveDeal(null);
+  }
+
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+    >
       <div
         className="flex gap-3 overflow-x-auto pb-4"
         style={{ minHeight: "calc(100vh - 220px)" }}
@@ -75,10 +162,10 @@ export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardPro
         ))}
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={dropAnimation}>
         {activeDeal ? (
-          <div className="w-60 rotate-2 opacity-90">
-            <DealCard deal={activeDeal} onSelect={() => {}} onStageChange={() => {}} />
+          <div className="w-60 rotate-1 opacity-95">
+            <DealCardPreview deal={activeDeal} />
           </div>
         ) : null}
       </DragOverlay>

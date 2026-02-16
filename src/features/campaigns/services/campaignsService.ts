@@ -2,15 +2,22 @@ import { supabase } from "@/lib/supabase";
 import type { ApiResult } from "@/types";
 import type {
   AddPeopleToCampaignInput,
+  BulkCampaignDealDuplicatePreviewRow,
+  BulkConvertCampaignMembersToDealsInput,
+  BulkConvertCampaignMembersToDealsResult,
   Campaign,
+  CampaignLeadConversionResult,
   CampaignListParams,
+  CampaignMemberDealSummary,
   CampaignMemberSummary,
   CampaignMetrics,
   CampaignOption,
+  ConvertCampaignLeadInput,
   CreateCampaignInput,
   LinkedProductSummary,
   LinkedTemplateSummary,
   PersonCampaignMembership,
+  PreviewBulkCampaignDealDuplicatesInput,
   RemovePersonFromCampaignInput,
   SyncCampaignProductsInput,
   SyncCampaignTemplatesInput,
@@ -390,6 +397,54 @@ export async function listCampaignMembers(
   return { data: members, error: null };
 }
 
+export async function listCampaignMemberDeals(
+  organizationId: string,
+  campaignId: string,
+): Promise<ApiResult<CampaignMemberDealSummary[]>> {
+  const { data, error } = await supabase
+    .from("deals")
+    .select(
+      "id, person_id, product_id, stage, value, currency, next_step_at, notes, created_at, updated_at, people!deals_person_fk(full_name), products!deals_product_fk(name)",
+    )
+    .eq("organization_id", organizationId)
+    .eq("campaign_id", campaignId)
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const deals: CampaignMemberDealSummary[] = (data ?? [])
+    .map((row) => {
+      const person = (row as { people?: unknown }).people as { full_name: string } | undefined;
+      const product = (row as { products?: unknown }).products as { name: string } | undefined;
+      const personId = (row as { person_id: string | null }).person_id;
+      const productId = (row as { product_id: string | null }).product_id;
+
+      if (!personId || !productId || !person || !product) {
+        return null;
+      }
+
+      return {
+        id: (row as { id: string }).id,
+        person_id: personId,
+        person_name: person.full_name,
+        product_id: productId,
+        product_name: product.name,
+        stage: (row as { stage: CampaignMemberDealSummary["stage"] }).stage,
+        value: (row as { value: number | null }).value,
+        currency: (row as { currency: string | null }).currency,
+        next_step_at: (row as { next_step_at: string | null }).next_step_at,
+        notes: (row as { notes: string | null }).notes,
+        created_at: (row as { created_at: string }).created_at,
+        updated_at: (row as { updated_at: string }).updated_at,
+      };
+    })
+    .filter((value): value is CampaignMemberDealSummary => value !== null);
+
+  return { data: deals, error: null };
+}
+
 export async function addPeopleToCampaign(
   input: AddPeopleToCampaignInput,
 ): Promise<ApiResult<null>> {
@@ -453,35 +508,173 @@ export async function getCampaignMetrics(
   organizationId: string,
   campaignId: string,
 ): Promise<ApiResult<CampaignMetrics>> {
-  const { count: peopleAdded, error: peopleError } = await supabase
-    .from("campaign_people")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("campaign_id", campaignId);
+  const [membersResult, interactionsResult, dealsResult] = await Promise.all([
+    supabase
+      .from("campaign_people")
+      .select("person_id")
+      .eq("organization_id", organizationId)
+      .eq("campaign_id", campaignId),
+    supabase
+      .from("interactions")
+      .select("person_id")
+      .eq("organization_id", organizationId)
+      .eq("campaign_id", campaignId),
+    supabase
+      .from("deals")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("campaign_id", campaignId),
+  ]);
 
-  if (peopleError) {
-    return { data: null, error: peopleError.message };
+  if (membersResult.error) {
+    return { data: null, error: membersResult.error.message };
   }
 
-  const { data: engagedRows, error: engagedError } = await supabase
-    .from("interactions")
-    .select("person_id")
-    .eq("organization_id", organizationId)
-    .eq("campaign_id", campaignId);
-
-  if (engagedError) {
-    return { data: null, error: engagedError.message };
+  if (interactionsResult.error) {
+    return { data: null, error: interactionsResult.error.message };
   }
 
-  const uniqueEngaged = new Set(
-    (engagedRows ?? []).map((row) => (row as { person_id: string }).person_id),
+  if (dealsResult.error) {
+    return { data: null, error: dealsResult.error.message };
+  }
+
+  const memberIds = new Set(
+    (membersResult.data ?? []).map((row) => (row as { person_id: string }).person_id),
   );
+  const engagedIds = new Set<string>();
+
+  for (const row of interactionsResult.data ?? []) {
+    const personId = (row as { person_id: string }).person_id;
+    if (memberIds.has(personId)) {
+      engagedIds.add(personId);
+    }
+  }
 
   return {
     data: {
-      peopleAdded: peopleAdded ?? 0,
-      peopleEngaged: uniqueEngaged.size,
-      dealsCreated: 0, // deals table doesn't exist until D4
+      peopleAdded: memberIds.size,
+      peopleEngaged: engagedIds.size,
+      dealsCreated: dealsResult.count ?? 0,
+    },
+    error: null,
+  };
+}
+
+// --- Conversion RPCs ---
+
+export async function convertCampaignLead(
+  input: ConvertCampaignLeadInput,
+): Promise<ApiResult<CampaignLeadConversionResult>> {
+  const args = {
+    p_organization_id: input.organizationId,
+    p_campaign_id: input.campaignId,
+    p_mode: input.mode,
+    p_lifecycle: input.lifecycle,
+    ...(input.personId ? { p_person_id: input.personId } : {}),
+    ...(input.fullName ? { p_full_name: input.fullName } : {}),
+    ...(input.email ? { p_email: input.email } : {}),
+    ...(input.phone ? { p_phone: input.phone } : {}),
+    ...(input.notes ? { p_notes: input.notes } : {}),
+    ...(input.productId ? { p_product_id: input.productId } : {}),
+    ...(input.value !== null ? { p_value: input.value } : {}),
+    ...(input.currency ? { p_currency: input.currency } : {}),
+    ...(input.nextStepAt ? { p_next_step_at: input.nextStepAt } : {}),
+    ...(input.dealNotes ? { p_deal_notes: input.dealNotes } : {}),
+    ...(input.interactionSummary ? { p_interaction_summary: input.interactionSummary } : {}),
+    ...(input.interactionType ? { p_interaction_type: input.interactionType } : {}),
+  };
+
+  const { data, error } = await supabase.rpc("convert_campaign_lead", args);
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  if (!data || typeof data !== "object") {
+    return { data: null, error: "Conversion returned an invalid response" };
+  }
+
+  return { data: data as unknown as CampaignLeadConversionResult, error: null };
+}
+
+export async function previewBulkCampaignDealDuplicates(
+  input: PreviewBulkCampaignDealDuplicatesInput,
+): Promise<ApiResult<BulkCampaignDealDuplicatePreviewRow[]>> {
+  const { data, error } = await supabase.rpc("preview_bulk_campaign_deal_duplicates", {
+    p_organization_id: input.organizationId,
+    p_campaign_id: input.campaignId,
+    p_person_ids: input.personIds,
+    p_product_id: input.productId,
+  });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const rows = (data ?? []).map((row) => ({
+    person_id: (row as { person_id: string }).person_id,
+    full_name: (row as { full_name: string }).full_name,
+    duplicate_deal_id: (row as { duplicate_deal_id: string }).duplicate_deal_id,
+    duplicate_stage: (
+      row as { duplicate_stage: BulkCampaignDealDuplicatePreviewRow["duplicate_stage"] }
+    ).duplicate_stage,
+    duplicate_created_at: (row as { duplicate_created_at: string }).duplicate_created_at,
+  }));
+
+  return { data: rows, error: null };
+}
+
+export async function bulkConvertCampaignMembersToDeals(
+  input: BulkConvertCampaignMembersToDealsInput,
+): Promise<ApiResult<BulkConvertCampaignMembersToDealsResult>> {
+  const args = {
+    p_organization_id: input.organizationId,
+    p_campaign_id: input.campaignId,
+    p_person_ids: input.personIds,
+    p_product_id: input.productId,
+    p_duplicate_strategy: input.duplicateStrategy,
+    ...(input.value !== null ? { p_value: input.value } : {}),
+    ...(input.currency ? { p_currency: input.currency } : {}),
+    ...(input.nextStepAt ? { p_next_step_at: input.nextStepAt } : {}),
+    ...(input.dealNotes ? { p_deal_notes: input.dealNotes } : {}),
+    ...(input.interactionSummary ? { p_interaction_summary: input.interactionSummary } : {}),
+    ...(input.interactionType ? { p_interaction_type: input.interactionType } : {}),
+  };
+
+  const { data, error } = await supabase.rpc("bulk_convert_campaign_members_to_deals", args);
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  if (!data || typeof data !== "object") {
+    return { data: null, error: "Bulk conversion returned an invalid response" };
+  }
+
+  const payload = data as {
+    total_requested?: number;
+    created_deals?: number;
+    skipped_duplicates?: number;
+    errors?: number;
+    results?: unknown;
+  };
+  const rows = Array.isArray(payload.results) ? payload.results : [];
+
+  return {
+    data: {
+      total_requested: payload.total_requested ?? 0,
+      created_deals: payload.created_deals ?? 0,
+      skipped_duplicates: payload.skipped_duplicates ?? 0,
+      errors: payload.errors ?? 0,
+      results: rows.map((row) => ({
+        person_id: (row as { person_id: string }).person_id,
+        person_name: (row as { person_name: string | null }).person_name,
+        status: (row as { status: "created" | "skipped_duplicate" | "error" }).status,
+        duplicate_deal_id: (row as { duplicate_deal_id: string | null }).duplicate_deal_id,
+        deal_id: (row as { deal_id: string | null }).deal_id,
+        interaction_id: (row as { interaction_id: string | null }).interaction_id,
+        error: (row as { error: string | null }).error,
+      })),
     },
     error: null,
   };
@@ -569,6 +762,28 @@ export async function listCampaignTemplateOptions(
   const options = (data ?? []).map((row) => ({
     id: (row as { id: string }).id,
     title: (row as { title: string }).title,
+  }));
+
+  return { data: options, error: null };
+}
+
+export async function listCampaignProductOptions(
+  organizationId: string,
+): Promise<ApiResult<Array<{ id: string; name: string }>>> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name")
+    .eq("organization_id", organizationId)
+    .eq("is_archived", false)
+    .order("name", { ascending: true });
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  const options = (data ?? []).map((row) => ({
+    id: (row as { id: string }).id,
+    name: (row as { name: string }).name,
   }));
 
   return { data: options, error: null };

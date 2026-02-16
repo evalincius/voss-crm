@@ -34,10 +34,12 @@ import {
   useUpdateCampaign,
 } from "@/features/campaigns/hooks/useCampaigns";
 import type { Campaign } from "@/features/campaigns/types";
-import { listCampaignTemplateOptions } from "@/features/campaigns/services/campaignsService";
+import {
+  listCampaignProductOptions,
+  listCampaignTemplateOptions,
+} from "@/features/campaigns/services/campaignsService";
 import { useQuery } from "@tanstack/react-query";
-import { listProductOptions } from "@/features/library/products/services/productsService";
-import { productKeys } from "@/lib/queryKeys";
+import { campaignKeys } from "@/lib/queryKeys";
 
 interface CampaignFormDialogProps {
   open: boolean;
@@ -61,9 +63,9 @@ export function CampaignFormDialog({
   const syncTemplatesMutation = useSyncCampaignTemplates();
 
   const productOptionsQuery = useQuery({
-    queryKey: productKeys.options(organizationId).queryKey,
+    queryKey: [...campaignKeys.options(organizationId).queryKey, "product-options"],
     queryFn: async () => {
-      const result = await listProductOptions(organizationId);
+      const result = await listCampaignProductOptions(organizationId);
       if (result.error || !result.data) {
         throw new Error(result.error ?? "Failed to load products");
       }

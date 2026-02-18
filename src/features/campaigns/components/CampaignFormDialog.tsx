@@ -41,6 +41,8 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { campaignKeys } from "@/lib/queryKeys";
 
+const NONE_VALUE = "__none__";
+
 interface CampaignFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -108,27 +110,32 @@ export function CampaignFormDialog({
     defaultValues: {
       name: campaign?.name ?? "",
       type: campaign?.type ?? "cold_outreach",
-      productIds: [],
-      templateIds: [],
+      productId: "",
+      templateId: null,
     },
   });
 
-  const selectedProductIds = watch("productIds");
-  const selectedTemplateIds = watch("templateIds");
+  const selectedProductId = watch("productId");
+  const selectedTemplateId = watch("templateId");
   const campaignType = watch("type");
+  const projectSelectValue = selectedProductId.length > 0 ? selectedProductId : NONE_VALUE;
+  const templateSelectValue =
+    typeof selectedTemplateId === "string" && selectedTemplateId.length > 0
+      ? selectedTemplateId
+      : NONE_VALUE;
 
-  const initialProductIds = useMemo(() => {
+  const initialProductId = useMemo(() => {
     if (!campaign) {
-      return [];
+      return "";
     }
-    return linkedProductIdsQuery.data ?? [];
+    return linkedProductIdsQuery.data?.[0] ?? "";
   }, [campaign, linkedProductIdsQuery.data]);
 
-  const initialTemplateIds = useMemo(() => {
+  const initialTemplateId = useMemo(() => {
     if (!campaign) {
-      return [];
+      return null;
     }
-    return linkedTemplateIdsQuery.data ?? [];
+    return linkedTemplateIdsQuery.data?.[0] ?? null;
   }, [campaign, linkedTemplateIdsQuery.data]);
 
   useEffect(() => {
@@ -136,8 +143,8 @@ export function CampaignFormDialog({
       reset({
         name: campaign.name,
         type: campaign.type,
-        productIds: initialProductIds,
-        templateIds: initialTemplateIds,
+        productId: initialProductId,
+        templateId: initialTemplateId,
       });
       return;
     }
@@ -145,30 +152,10 @@ export function CampaignFormDialog({
     reset({
       name: "",
       type: "cold_outreach",
-      productIds: [],
-      templateIds: [],
+      productId: "",
+      templateId: null,
     });
-  }, [campaign, initialProductIds, initialTemplateIds, reset]);
-
-  function toggleProduct(productId: string, checked: boolean) {
-    const current = new Set(selectedProductIds ?? []);
-    if (checked) {
-      current.add(productId);
-    } else {
-      current.delete(productId);
-    }
-    setValue("productIds", Array.from(current), { shouldValidate: true });
-  }
-
-  function toggleTemplate(templateId: string, checked: boolean) {
-    const current = new Set(selectedTemplateIds ?? []);
-    if (checked) {
-      current.add(templateId);
-    } else {
-      current.delete(templateId);
-    }
-    setValue("templateIds", Array.from(current), { shouldValidate: true });
-  }
+  }, [campaign, initialProductId, initialTemplateId, reset]);
 
   async function onSubmit(values: CampaignFormSchema) {
     setServerError(null);
@@ -184,14 +171,14 @@ export function CampaignFormDialog({
         await syncProductsMutation.mutateAsync({
           organizationId,
           campaignId: updated.id,
-          productIds: values.productIds,
+          productIds: [values.productId],
           userId,
         });
 
         await syncTemplatesMutation.mutateAsync({
           organizationId,
           campaignId: updated.id,
-          templateIds: values.templateIds,
+          templateIds: values.templateId ? [values.templateId] : [],
           userId,
         });
 
@@ -207,14 +194,14 @@ export function CampaignFormDialog({
         await syncProductsMutation.mutateAsync({
           organizationId,
           campaignId: created.id,
-          productIds: values.productIds,
+          productIds: [values.productId],
           userId,
         });
 
         await syncTemplatesMutation.mutateAsync({
           organizationId,
           campaignId: created.id,
-          templateIds: values.templateIds,
+          templateIds: values.templateId ? [values.templateId] : [],
           userId,
         });
 
@@ -272,53 +259,67 @@ export function CampaignFormDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Linked products</Label>
+            <Label htmlFor="campaign-project">Project</Label>
             {productOptionsQuery.isLoading ? (
-              <p className="text-text-secondary text-sm">Loading products...</p>
+              <p className="text-text-secondary text-sm">Loading projects...</p>
             ) : null}
             {!productOptionsQuery.isLoading && (productOptionsQuery.data?.length ?? 0) === 0 ? (
-              <p className="text-text-secondary text-sm">No active products available.</p>
+              <p className="text-text-secondary text-sm">No active projects available.</p>
             ) : null}
-            <div className="max-h-36 space-y-2 overflow-auto pr-1">
-              {(productOptionsQuery.data ?? []).map((product) => {
-                const checked = (selectedProductIds ?? []).includes(product.id);
-                return (
-                  <label key={product.id} className="flex items-center gap-2 text-base">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(event) => toggleProduct(product.id, event.target.checked)}
-                    />
-                    <span>{product.name}</span>
-                  </label>
-                );
-              })}
-            </div>
+            <Select
+              value={projectSelectValue}
+              onValueChange={(value) =>
+                setValue("productId", value === NONE_VALUE ? "" : value, { shouldValidate: true })
+              }
+            >
+              <SelectTrigger id="campaign-project">
+                <SelectValue placeholder="Select a project" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>Select a project</SelectItem>
+                {(productOptionsQuery.data ?? []).map((product) => (
+                  <SelectItem key={product.id} value={product.id}>
+                    {product.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.productId ? (
+              <p className="text-destructive text-sm">{errors.productId.message}</p>
+            ) : null}
           </div>
 
           <div className="space-y-2">
-            <Label>Linked templates</Label>
+            <Label htmlFor="campaign-template">Template (optional)</Label>
             {templateOptionsQuery.isLoading ? (
               <p className="text-text-secondary text-sm">Loading templates...</p>
             ) : null}
             {!templateOptionsQuery.isLoading && (templateOptionsQuery.data?.length ?? 0) === 0 ? (
               <p className="text-text-secondary text-sm">No active templates available.</p>
             ) : null}
-            <div className="max-h-36 space-y-2 overflow-auto pr-1">
-              {(templateOptionsQuery.data ?? []).map((template) => {
-                const checked = (selectedTemplateIds ?? []).includes(template.id);
-                return (
-                  <label key={template.id} className="flex items-center gap-2 text-base">
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={(event) => toggleTemplate(template.id, event.target.checked)}
-                    />
-                    <span>{template.title}</span>
-                  </label>
-                );
-              })}
-            </div>
+            <Select
+              value={templateSelectValue}
+              onValueChange={(value) =>
+                setValue("templateId", value === NONE_VALUE ? null : value, {
+                  shouldValidate: true,
+                })
+              }
+            >
+              <SelectTrigger id="campaign-template">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NONE_VALUE}>None</SelectItem>
+                {(templateOptionsQuery.data ?? []).map((template) => (
+                  <SelectItem key={template.id} value={template.id}>
+                    {template.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.templateId ? (
+              <p className="text-destructive text-sm">{errors.templateId.message}</p>
+            ) : null}
           </div>
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>

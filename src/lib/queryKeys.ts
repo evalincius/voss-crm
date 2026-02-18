@@ -52,6 +52,21 @@ export const interactionKeys = createQueryKeys("interactions", {
     `organization_id:${organizationId}`,
     `person_id:${personId}`,
   ],
+  dealContext: (organizationId: string, dealId: string) => [
+    `organization_id:${organizationId}`,
+    `deal_id:${dealId}`,
+    "deal-context",
+  ],
+  associationOptions: (organizationId: string, personId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+    "association-options",
+  ],
+  templateOptionsByProduct: (organizationId: string, productId: string) => [
+    `organization_id:${organizationId}`,
+    `product_id:${productId}`,
+    "template-options-by-product",
+  ],
 });
 
 export const productKeys = createQueryKeys("products", {

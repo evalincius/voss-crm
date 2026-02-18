@@ -1,4 +1,4 @@
-import { useQuery, type QueryKey } from "@tanstack/react-query";
+import { useQuery, keepPreviousData, type QueryKey } from "@tanstack/react-query";
 import {
   getFollowUpsDue,
   getStaleDeals,
@@ -6,26 +6,29 @@ import {
   getTopProducts,
   getTopCampaigns,
 } from "@/features/dashboard/services/dashboardService";
+import type { FollowUpsQueryParams } from "@/features/dashboard/types";
 import { dashboardKeys } from "@/lib/queryKeys";
 
-export function useFollowUpsDue(orgId: string | null) {
+export function useFollowUpsDue(orgId: string | null, params: FollowUpsQueryParams | null) {
   return useQuery({
-    queryKey: orgId
-      ? dashboardKeys.followUps(orgId).queryKey
-      : (["dashboard", "followUps", "disabled"] satisfies QueryKey),
+    queryKey:
+      orgId && params
+        ? dashboardKeys.followUps(orgId, params).queryKey
+        : (["dashboard", "followUps", "disabled"] satisfies QueryKey),
     queryFn: async () => {
-      if (!orgId) {
+      if (!orgId || !params) {
         throw new Error("Organization is required");
       }
 
-      const result = await getFollowUpsDue(orgId);
+      const result = await getFollowUpsDue(orgId, params);
       if (result.error || !result.data) {
         throw new Error(result.error ?? "Failed to load follow-ups");
       }
 
       return result.data;
     },
-    enabled: !!orgId,
+    enabled: !!orgId && !!params,
+    placeholderData: keepPreviousData,
   });
 }
 

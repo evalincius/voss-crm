@@ -11,6 +11,24 @@ export interface FollowUpItem {
   interaction_summary: string | null;
 }
 
+export type FollowUpsStatus = "all" | "overdue" | "today" | "upcoming" | "custom";
+
+export interface FollowUpsQueryParams {
+  horizonDays: number;
+  page: number;
+  pageSize: number;
+  status: FollowUpsStatus;
+  customStart: string | null;
+  customEnd: string | null;
+}
+
+export interface PaginatedFollowUpsResult {
+  items: FollowUpItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
 export interface StaleDeal {
   id: string;
   person_id: string;

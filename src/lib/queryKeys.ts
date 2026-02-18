@@ -151,7 +151,17 @@ export const campaignKeys = createQueryKeys("campaigns", {
 });
 
 export const dashboardKeys = createQueryKeys("dashboard", {
-  followUps: (organizationId: string) => [`organization_id:${organizationId}`, "followUps"],
+  followUps: (
+    organizationId: string,
+    params: {
+      horizonDays: number;
+      status: "all" | "overdue" | "today" | "upcoming" | "custom";
+      page: number;
+      pageSize: number;
+      customStart: string | null;
+      customEnd: string | null;
+    },
+  ) => [`organization_id:${organizationId}`, "followUps", params],
   staleDeals: (organizationId: string, threshold: number) => [
     `organization_id:${organizationId}`,
     "staleDeals",

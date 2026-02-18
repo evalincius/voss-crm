@@ -54,6 +54,7 @@ function renderRoute(path: string, isAuthenticated: boolean) {
 describe("CRM routes", () => {
   it.each([
     ["/app/dashboard", "Dashboard"],
+    ["/app/follow-ups", "Follow-ups"],
     ["/app/library", "Library"],
     ["/app/people", "People"],
     ["/app/people/person-1", "Person Detail"],
@@ -72,6 +73,7 @@ describe("CRM routes", () => {
 
   it.each([
     "/app/dashboard",
+    "/app/follow-ups",
     "/app/library",
     "/app/people",
     "/app/people/person-1",

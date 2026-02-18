@@ -7,14 +7,24 @@ import { DEAL_STAGE_LABELS, ROUTES } from "@/lib/constants";
 import { useFollowUpsDue } from "@/features/dashboard/hooks/useDashboard";
 import type { DealStage } from "@/features/deals/types";
 
+const PREVIEW_PAGE_SIZE = 5;
+
 interface FollowUpsWidgetProps {
   organizationId: string;
   onSelectDeal: (dealId: string) => void;
 }
 
 export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidgetProps) {
-  const query = useFollowUpsDue(organizationId);
-  const count = query.data?.length ?? 0;
+  const query = useFollowUpsDue(organizationId, {
+    horizonDays: 7,
+    status: "all",
+    page: 1,
+    pageSize: PREVIEW_PAGE_SIZE,
+    customStart: null,
+    customEnd: null,
+  });
+  const count = query.data?.total ?? 0;
+  const previewItems = query.data?.items.slice(0, PREVIEW_PAGE_SIZE) ?? [];
 
   return (
     <div className="card-surface bg-bg-surface h-full p-4">
@@ -54,7 +64,7 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
 
       {query.data && count > 0 ? (
         <div className="divide-border-fintech divide-y">
-          {query.data.slice(0, 8).map((item) => (
+          {previewItems.map((item) => (
             <div
               key={`${item.source}-${item.id}`}
               className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
@@ -108,6 +118,14 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
               </span>
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {query.data && count > PREVIEW_PAGE_SIZE ? (
+        <div className="border-border-fintech mt-3 pt-3">
+          <Link to={ROUTES.FOLLOW_UPS} className="text-primary text-sm font-medium hover:underline">
+            View all follow-ups
+          </Link>
         </div>
       ) : null}
     </div>

@@ -15,6 +15,7 @@ import { ROUTES } from "@/lib/constants";
 
 const pageTitleRules: Array<{ title: string; matches: (pathname: string) => boolean }> = [
   { title: "Dashboard", matches: (pathname) => pathname === ROUTES.DASHBOARD },
+  { title: "Follow-ups", matches: (pathname) => pathname === ROUTES.FOLLOW_UPS },
   {
     title: "People",
     matches: (pathname) => pathname === ROUTES.PEOPLE || pathname.startsWith(`${ROUTES.PEOPLE}/`),

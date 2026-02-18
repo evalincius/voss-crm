@@ -100,9 +100,37 @@ describe("query keys", () => {
   });
 
   it("includes organization_id in dashboard followUps keys", () => {
-    const key = dashboardKeys.followUps("org-dash").queryKey;
+    const key = dashboardKeys.followUps("org-dash", {
+      horizonDays: 7,
+      status: "all",
+      page: 1,
+      pageSize: 25,
+      customStart: null,
+      customEnd: null,
+    }).queryKey;
     expect(key).toContain("organization_id:org-dash");
     expect(key).toContain("followUps");
+  });
+
+  it("isolates dashboard followUps cache by params", () => {
+    const pageOne = dashboardKeys.followUps("org-dash", {
+      horizonDays: 7,
+      status: "all",
+      page: 1,
+      pageSize: 25,
+      customStart: null,
+      customEnd: null,
+    }).queryKey;
+    const pageTwo = dashboardKeys.followUps("org-dash", {
+      horizonDays: 14,
+      status: "upcoming",
+      page: 2,
+      pageSize: 25,
+      customStart: null,
+      customEnd: null,
+    }).queryKey;
+
+    expect(pageOne).not.toEqual(pageTwo);
   });
 
   it("includes threshold in dashboard staleDeals keys", () => {

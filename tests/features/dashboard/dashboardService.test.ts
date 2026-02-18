@@ -10,6 +10,9 @@ vi.mock("@/lib/supabase", () => ({
       const builder = {
         select: vi.fn(() => builder),
         eq: vi.fn(() => builder),
+        gt: vi.fn(() => builder),
+        gte: vi.fn(() => builder),
+        lte: vi.fn(() => builder),
         or: vi.fn(() => builder),
         order: vi.fn(() => builder),
         neq: vi.fn(() => builder),
@@ -210,6 +213,15 @@ describe("dashboardService", () => {
   });
 
   describe("getFollowUpsDue", () => {
+    const defaultParams = {
+      horizonDays: 7,
+      status: "all" as const,
+      page: 1,
+      pageSize: 25,
+      customStart: null,
+      customEnd: null,
+    };
+
     it("merges and sorts follow-ups from deals and interactions", async () => {
       // First call: deals with next_step_at
       mockQueryResult.mockResolvedValueOnce({
@@ -241,15 +253,65 @@ describe("dashboardService", () => {
         error: null,
       });
 
-      const result = await getFollowUpsDue("org-1");
+      const result = await getFollowUpsDue("org-1", defaultParams);
 
       expect(result.error).toBeNull();
-      expect(result.data).toHaveLength(2);
+      expect(result.data?.total).toBe(2);
+      expect(result.data?.items).toHaveLength(2);
       // Sorted by next_step_at ascending — interaction first
-      expect(result.data?.[0]?.person_name).toBe("Bob");
-      expect(result.data?.[0]?.source).toBe("interaction");
-      expect(result.data?.[1]?.person_name).toBe("Alice");
-      expect(result.data?.[1]?.source).toBe("deal");
+      expect(result.data?.items[0]?.person_name).toBe("Bob");
+      expect(result.data?.items[0]?.source).toBe("interaction");
+      expect(result.data?.items[1]?.person_name).toBe("Alice");
+      expect(result.data?.items[1]?.source).toBe("deal");
+    });
+
+    it("applies pagination after merge and sort", async () => {
+      mockQueryResult.mockResolvedValueOnce({
+        data: [
+          {
+            id: "deal-1",
+            person_id: "p1",
+            stage: "prospect",
+            next_step_at: "2026-02-18T00:00:00Z",
+            people: { full_name: "Alice" },
+            products: { name: "Enterprise" },
+          },
+          {
+            id: "deal-2",
+            person_id: "p2",
+            stage: "prospect",
+            next_step_at: "2026-02-19T00:00:00Z",
+            people: { full_name: "Bruno" },
+            products: { name: "Starter" },
+          },
+        ],
+        error: null,
+      });
+      mockQueryResult.mockResolvedValueOnce({
+        data: [
+          {
+            id: "int-1",
+            person_id: "p3",
+            deal_id: null,
+            type: "call",
+            summary: "Follow up",
+            next_step_at: "2026-02-17T00:00:00Z",
+            people: { full_name: "Carmen" },
+          },
+        ],
+        error: null,
+      });
+
+      const result = await getFollowUpsDue("org-1", {
+        ...defaultParams,
+        pageSize: 2,
+      });
+
+      expect(result.error).toBeNull();
+      expect(result.data?.total).toBe(3);
+      expect(result.data?.items).toHaveLength(2);
+      expect(result.data?.items[0]?.person_name).toBe("Carmen");
+      expect(result.data?.items[1]?.person_name).toBe("Alice");
     });
 
     it("handles error on deals query", async () => {
@@ -262,7 +324,7 @@ describe("dashboardService", () => {
         error: null,
       });
 
-      const result = await getFollowUpsDue("org-1");
+      const result = await getFollowUpsDue("org-1", defaultParams);
 
       expect(result.error).toBe("Deal error");
     });

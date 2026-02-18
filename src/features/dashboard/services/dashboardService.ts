@@ -2,6 +2,8 @@ import { supabase } from "@/lib/supabase";
 import type { ApiResult } from "@/types";
 import type {
   FollowUpItem,
+  FollowUpsQueryParams,
+  PaginatedFollowUpsResult,
   StaleDeal,
   PipelineStageCount,
   TopProduct,
@@ -9,8 +11,122 @@ import type {
 } from "@/features/dashboard/types";
 import { DEAL_STAGE_VALUES } from "@/lib/constants";
 
-export async function getFollowUpsDue(orgId: string): Promise<ApiResult<FollowUpItem[]>> {
-  const [dealsResult, interactionsResult] = await Promise.all([
+function normalizePositiveInt(value: number, fallback: number): number {
+  if (!Number.isFinite(value) || value < 1) {
+    return fallback;
+  }
+
+  return Math.trunc(value);
+}
+
+function toUtcStartOfDayIso(date: Date): string {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0),
+  ).toISOString();
+}
+
+function toUtcEndOfDayIso(date: Date): string {
+  return new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999),
+  ).toISOString();
+}
+
+function buildFollowUpsTimeWindow(
+  params: FollowUpsQueryParams,
+  now: Date,
+): { fromExclusive: string | null; fromInclusive: string | null; toInclusive: string | null } {
+  const horizonEnd = new Date(now.getTime() + params.horizonDays * 24 * 60 * 60 * 1000);
+  const startOfToday = toUtcStartOfDayIso(now);
+  const endOfToday = toUtcEndOfDayIso(now);
+
+  if (params.status === "overdue") {
+    return {
+      fromExclusive: null,
+      fromInclusive: null,
+      toInclusive: now.toISOString(),
+    };
+  }
+
+  if (params.status === "today") {
+    return {
+      fromExclusive: null,
+      fromInclusive: startOfToday,
+      toInclusive: endOfToday,
+    };
+  }
+
+  if (params.status === "upcoming") {
+    return {
+      fromExclusive: endOfToday,
+      fromInclusive: null,
+      toInclusive: horizonEnd.toISOString(),
+    };
+  }
+
+  if (params.status === "custom") {
+    const customStart = params.customStart ? new Date(params.customStart) : null;
+    const customEnd = params.customEnd ? new Date(params.customEnd) : null;
+    return {
+      fromExclusive: null,
+      fromInclusive: customStart ? toUtcStartOfDayIso(customStart) : null,
+      toInclusive: customEnd ? toUtcEndOfDayIso(customEnd) : null,
+    };
+  }
+
+  return {
+    fromExclusive: null,
+    fromInclusive: null,
+    toInclusive: horizonEnd.toISOString(),
+  };
+}
+
+type NextStepScopedQuery = {
+  gt: (column: string, value: string) => NextStepScopedQuery;
+  gte: (column: string, value: string) => NextStepScopedQuery;
+  lte: (column: string, value: string) => NextStepScopedQuery;
+};
+
+function applyFollowUpsTimeWindow<T>(
+  query: T,
+  window: {
+    fromExclusive: string | null;
+    fromInclusive: string | null;
+    toInclusive: string | null;
+  },
+): T {
+  const scopedQuery = query as T & NextStepScopedQuery;
+
+  if (window.fromExclusive) {
+    scopedQuery.gt("next_step_at", window.fromExclusive);
+  }
+
+  if (window.fromInclusive) {
+    scopedQuery.gte("next_step_at", window.fromInclusive);
+  }
+
+  if (window.toInclusive) {
+    scopedQuery.lte("next_step_at", window.toInclusive);
+  }
+
+  return scopedQuery;
+}
+
+export async function getFollowUpsDue(
+  orgId: string,
+  params: FollowUpsQueryParams,
+): Promise<ApiResult<PaginatedFollowUpsResult>> {
+  const now = new Date();
+  const normalizedParams: FollowUpsQueryParams = {
+    horizonDays: Math.max(1, normalizePositiveInt(params.horizonDays, 7)),
+    page: normalizePositiveInt(params.page, 1),
+    pageSize: normalizePositiveInt(params.pageSize, 25),
+    status: params.status,
+    customStart: params.customStart,
+    customEnd: params.customEnd,
+  };
+  const timeWindow = buildFollowUpsTimeWindow(normalizedParams, now);
+
+  const dealsQuery = applyFollowUpsTimeWindow(
     supabase
       .from("deals")
       .select(
@@ -19,6 +135,10 @@ export async function getFollowUpsDue(orgId: string): Promise<ApiResult<FollowUp
       .eq("organization_id", orgId)
       .not("next_step_at", "is", null)
       .neq("stage", "lost"),
+    timeWindow,
+  );
+
+  const interactionsQuery = applyFollowUpsTimeWindow(
     supabase
       .from("interactions")
       .select(
@@ -26,7 +146,10 @@ export async function getFollowUpsDue(orgId: string): Promise<ApiResult<FollowUp
       )
       .eq("organization_id", orgId)
       .not("next_step_at", "is", null),
-  ]);
+    timeWindow,
+  );
+
+  const [dealsResult, interactionsResult] = await Promise.all([dealsQuery, interactionsQuery]);
 
   if (dealsResult.error) {
     return { data: null, error: dealsResult.error.message };
@@ -75,7 +198,19 @@ export async function getFollowUpsDue(orgId: string): Promise<ApiResult<FollowUp
 
   items.sort((a, b) => new Date(a.next_step_at).getTime() - new Date(b.next_step_at).getTime());
 
-  return { data: items, error: null };
+  const total = items.length;
+  const from = (normalizedParams.page - 1) * normalizedParams.pageSize;
+  const to = from + normalizedParams.pageSize;
+
+  return {
+    data: {
+      items: items.slice(from, to),
+      total,
+      page: normalizedParams.page,
+      pageSize: normalizedParams.pageSize,
+    },
+    error: null,
+  };
 }
 
 export async function getStaleDeals(

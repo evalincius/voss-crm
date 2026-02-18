@@ -4,6 +4,11 @@ export type Interaction = Tables<"interactions">;
 export type InteractionType = Enums<"interaction_type">;
 export type InteractionOrderBy = "created_desc" | "created_asc";
 
+export interface PersonInteraction extends Interaction {
+  deal_stage: Enums<"deal_stage"> | null;
+  deal_product_name: string | null;
+}
+
 export interface CreateInteractionInput {
   organization_id: string;
   person_id: string;

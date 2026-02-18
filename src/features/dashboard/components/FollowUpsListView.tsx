@@ -45,7 +45,10 @@ export function FollowUpsListView({ organizationId, userId }: FollowUpsListViewP
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
-  const [interactionTarget, setInteractionTarget] = useState<{ personId: string } | null>(null);
+  const [interactionTarget, setInteractionTarget] = useState<{
+    dealId: string | null;
+    personId: string;
+  } | null>(null);
 
   const status = parseStatus(searchParams.get("status"));
   const page = parsePage(searchParams.get("page"));
@@ -304,7 +307,12 @@ export function FollowUpsListView({ organizationId, userId }: FollowUpsListViewP
                             type="button"
                             variant="secondary"
                             size="sm"
-                            onClick={() => setInteractionTarget({ personId: item.person_id })}
+                            onClick={() =>
+                              setInteractionTarget({
+                                dealId: item.deal_id,
+                                personId: item.person_id,
+                              })
+                            }
                           >
                             Log interaction
                           </Button>
@@ -354,8 +362,8 @@ export function FollowUpsListView({ organizationId, userId }: FollowUpsListViewP
         }}
         organizationId={organizationId}
         dealId={selectedDealId}
-        onAddInteraction={(_dealId, personId) => {
-          setInteractionTarget({ personId });
+        onAddInteraction={(dealId, personId) => {
+          setInteractionTarget({ dealId, personId });
         }}
       />
 
@@ -370,6 +378,7 @@ export function FollowUpsListView({ organizationId, userId }: FollowUpsListViewP
           organizationId={organizationId}
           userId={userId}
           personId={interactionTarget.personId}
+          dealId={interactionTarget.dealId}
         />
       ) : null}
     </section>

@@ -40,6 +40,8 @@ describe("InteractionsTimeline", () => {
           summary: "Intro call completed",
           occurred_at: "2026-02-14T10:00:00.000Z",
           next_step_at: null,
+          deal_id: "deal-1",
+          deal_product_name: "Starter Offer",
         },
       ],
     });
@@ -48,6 +50,8 @@ describe("InteractionsTimeline", () => {
 
     expect(screen.getByText("Timeline")).toBeInTheDocument();
     expect(screen.getByText("Intro call completed")).toBeInTheDocument();
+    expect(screen.getByText(/Deal:/)).toBeInTheDocument();
+    expect(screen.getByText("Starter Offer")).toBeInTheDocument();
   });
 
   it("shows empty state", () => {

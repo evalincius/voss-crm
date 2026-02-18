@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -33,6 +33,7 @@ interface InteractionFormDialogProps {
   organizationId: string;
   userId: string;
   personId: string;
+  dealId?: string | null;
 }
 
 function toIsoDateTime(value: string | null): string | null {
@@ -50,6 +51,7 @@ export function InteractionFormDialog({
   organizationId,
   userId,
   personId,
+  dealId = null,
 }: InteractionFormDialogProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const createInteractionMutation = useCreateInteraction();
@@ -69,12 +71,31 @@ export function InteractionFormDialog({
       summary: "",
       next_step_at: "",
       occurred_at: "",
-      deal_id: "",
+      deal_id: dealId ?? "",
       campaign_id: "",
       template_id: "",
       product_id: "",
     },
   });
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setServerError(null);
+    reset({
+      person_id: personId,
+      type: "note",
+      summary: "",
+      next_step_at: "",
+      occurred_at: "",
+      deal_id: dealId ?? "",
+      campaign_id: "",
+      template_id: "",
+      product_id: "",
+    });
+  }, [open, personId, dealId, reset]);
 
   const type = watch("type");
 
@@ -103,7 +124,7 @@ export function InteractionFormDialog({
         summary: "",
         next_step_at: "",
         occurred_at: "",
-        deal_id: "",
+        deal_id: dealId ?? "",
         campaign_id: "",
         template_id: "",
         product_id: "",

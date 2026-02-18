@@ -4,18 +4,19 @@ import type {
   CreateInteractionInput,
   Interaction,
   InteractionOrderBy,
+  PersonInteraction,
 } from "@/features/interactions/types";
 
 export async function listInteractionsByPerson(
   organizationId: string,
   personId: string,
   orderBy: InteractionOrderBy,
-): Promise<ApiResult<Interaction[]>> {
+): Promise<ApiResult<PersonInteraction[]>> {
   const isAscending = orderBy === "created_asc";
 
   const { data, error } = await supabase
     .from("interactions")
-    .select("*")
+    .select("*, deals:deals!interactions_deals_fk(stage, products:products!deals_product_fk(name))")
     .eq("organization_id", organizationId)
     .eq("person_id", personId)
     .order("created_at", { ascending: isAscending });
@@ -24,7 +25,25 @@ export async function listInteractionsByPerson(
     return { data: null, error: error.message };
   }
 
-  return { data: data ?? [], error: null };
+  const interactions: PersonInteraction[] = (data ?? []).map((row) => {
+    const deal = (row as { deals?: unknown }).deals as
+      | {
+          stage: PersonInteraction["deal_stage"];
+          products?: { name: string } | null;
+        }
+      | null
+      | undefined;
+
+    const interaction = row as Interaction;
+
+    return {
+      ...interaction,
+      deal_stage: deal?.stage ?? null,
+      deal_product_name: deal?.products?.name ?? null,
+    };
+  });
+
+  return { data: interactions, error: null };
 }
 
 export async function createInteraction(

@@ -6,7 +6,7 @@ import {
 } from "@/features/interactions/services/interactionsService";
 import type { CreateInteractionInput, InteractionOrderBy } from "@/features/interactions/types";
 import { invalidateDashboardForOrg } from "@/lib/dashboardInvalidation";
-import { interactionKeys, peopleKeys } from "@/lib/queryKeys";
+import { dealKeys, interactionKeys, peopleKeys } from "@/lib/queryKeys";
 
 export function usePersonInteractions(
   organizationId: string | null,
@@ -54,6 +54,12 @@ export function useCreateInteraction() {
       await queryClient.invalidateQueries({
         queryKey: peopleKeys.detail(interaction.organization_id, interaction.person_id).queryKey,
       });
+      if (interaction.deal_id) {
+        await queryClient.invalidateQueries({
+          queryKey: dealKeys.interactions(interaction.organization_id, interaction.deal_id)
+            .queryKey,
+        });
+      }
       await invalidateDashboardForOrg(queryClient, interaction.organization_id);
     },
   });

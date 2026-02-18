@@ -201,6 +201,7 @@ export function DealsPage() {
           organizationId={currentOrganization.id}
           userId={user.id}
           personId={interactionContext.personId}
+          dealId={interactionContext.dealId}
         />
       ) : null}
     </section>

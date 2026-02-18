@@ -67,6 +67,7 @@ export function DashboardView({ organizationId, userId }: DashboardViewProps) {
           organizationId={organizationId}
           userId={userId}
           personId={interactionTarget.personId}
+          dealId={interactionTarget.dealId}
         />
       ) : null}
     </section>

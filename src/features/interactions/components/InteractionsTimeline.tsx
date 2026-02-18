@@ -127,6 +127,18 @@ function getNextStepStatus(nextStepAt: string | null) {
   return { label: "Scheduled", className: "text-green-400" };
 }
 
+function formatDealReference(dealId: string | null, dealProductName: string | null) {
+  if (!dealId) {
+    return null;
+  }
+
+  if (dealProductName) {
+    return dealProductName;
+  }
+
+  return `#${dealId.slice(0, 8)}`;
+}
+
 export function InteractionsTimeline({ organizationId, personId }: InteractionsTimelineProps) {
   const [orderBy, setOrderBy] = useState<InteractionOrderBy>("created_desc");
   const interactionsQuery = usePersonInteractions(organizationId, personId, orderBy);
@@ -240,8 +252,23 @@ export function InteractionsTimeline({ organizationId, personId }: InteractionsT
                       </div>
                     </TableCell>
 
-                    <TableCell className="text-text-secondary max-w-[520px] text-base whitespace-pre-wrap">
-                      {interaction.summary}
+                    <TableCell className="max-w-[520px]">
+                      <div className="space-y-1">
+                        <p className="text-text-secondary text-base whitespace-pre-wrap">
+                          {interaction.summary}
+                        </p>
+                        {interaction.deal_id ? (
+                          <p className="text-text-muted text-sm" title={interaction.deal_id}>
+                            Deal:{" "}
+                            <span className="text-text-secondary">
+                              {formatDealReference(
+                                interaction.deal_id,
+                                interaction.deal_product_name,
+                              )}
+                            </span>
+                          </p>
+                        ) : null}
+                      </div>
                     </TableCell>
 
                     <TableCell>

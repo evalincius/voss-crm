@@ -71,10 +71,16 @@ export function DealCard({ deal, onSelect, onStageChange }: DealCardProps) {
       className={`card-surface bg-bg-surface cursor-pointer space-y-2 rounded-md border p-3 transition-shadow ${
         isDragging ? "opacity-0" : ""
       }`}
+      {...listeners}
+      {...attributes}
       onClick={() => onSelect(deal.id)}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) {
+          return;
+        }
+
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           onSelect(deal.id);
@@ -83,15 +89,9 @@ export function DealCard({ deal, onSelect, onStageChange }: DealCardProps) {
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
-          <button
-            className="text-text-secondary hover:text-text-primary shrink-0 cursor-grab touch-none"
-            {...listeners}
-            {...attributes}
-            onClick={(e) => e.stopPropagation()}
-            aria-label="Drag to move deal"
-          >
+          <span className="text-text-secondary shrink-0 cursor-grab" aria-hidden>
             <GripVertical className="h-4 w-4" />
-          </button>
+          </span>
           <span className="text-text-primary truncate text-sm font-medium">{deal.person_name}</span>
         </div>
 
@@ -101,13 +101,18 @@ export function DealCard({ deal, onSelect, onStageChange }: DealCardProps) {
               variant="ghost"
               size="icon"
               className="h-6 w-6 shrink-0"
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => e.stopPropagation()}
             >
               <MoreVertical className="h-3.5 w-3.5" />
               <span className="sr-only">Move to stage</span>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuContent
+            align="end"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             {otherStages.map((stage) => (
               <DropdownMenuItem key={stage} onClick={() => onStageChange(deal.id, stage)}>
                 Move to {DEAL_STAGE_LABELS[stage]}

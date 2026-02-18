@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import type { HTMLAttributes, ReactNode } from "react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { mockUseDraggable } = vi.hoisted(() => ({
@@ -7,6 +8,20 @@ const { mockUseDraggable } = vi.hoisted(() => ({
 
 vi.mock("@dnd-kit/core", () => ({
   useDraggable: mockUseDraggable,
+}));
+
+vi.mock("@/components/ui/dropdown-menu", () => ({
+  DropdownMenu: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  DropdownMenuTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
+  DropdownMenuContent: ({
+    children,
+    ...props
+  }: { children: ReactNode } & HTMLAttributes<HTMLDivElement>) => <div {...props}>{children}</div>,
+  DropdownMenuItem: ({ children, onClick }: { children: ReactNode; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
 }));
 
 import { DealCard, DealCardPreview } from "@/features/deals/components/DealCard";
@@ -62,6 +77,72 @@ describe("DealCard", () => {
     const card = container.firstElementChild as HTMLElement;
     expect(card.style.transform).toBe("");
     expect(card.className).toContain("opacity-0");
+  });
+
+  it("activates dragging from card body pointer down", () => {
+    const onPointerDown = vi.fn();
+    mockUseDraggable.mockReturnValue({
+      attributes: {},
+      listeners: { onPointerDown },
+      setNodeRef: vi.fn(),
+      transform: null,
+      transition: null,
+      isDragging: false,
+    });
+
+    const { container } = render(
+      <DealCard deal={createDeal()} onSelect={vi.fn()} onStageChange={vi.fn()} />,
+    );
+
+    const card = container.firstElementChild as HTMLElement;
+    fireEvent.pointerDown(card);
+
+    expect(onPointerDown).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens details when clicking card content", () => {
+    const onSelect = vi.fn();
+
+    render(<DealCard deal={createDeal()} onSelect={onSelect} onStageChange={vi.fn()} />);
+
+    fireEvent.click(screen.getByText("Alice Example"));
+
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith("deal-1");
+  });
+
+  it("does not trigger drag or selection when interacting with overflow trigger", () => {
+    const onPointerDown = vi.fn();
+    const onSelect = vi.fn();
+
+    mockUseDraggable.mockReturnValue({
+      attributes: {},
+      listeners: { onPointerDown },
+      setNodeRef: vi.fn(),
+      transform: null,
+      transition: null,
+      isDragging: false,
+    });
+
+    render(<DealCard deal={createDeal()} onSelect={onSelect} onStageChange={vi.fn()} />);
+
+    const overflowTrigger = screen.getByRole("button", { name: "Move to stage" });
+    fireEvent.pointerDown(overflowTrigger);
+    fireEvent.click(overflowTrigger);
+
+    expect(onPointerDown).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("keeps stage menu as non-drag path for moving deals", () => {
+    const onStageChange = vi.fn();
+
+    render(<DealCard deal={createDeal()} onSelect={vi.fn()} onStageChange={onStageChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Move to Interested" }));
+
+    expect(onStageChange).toHaveBeenCalledTimes(1);
+    expect(onStageChange).toHaveBeenCalledWith("deal-1", "interested");
   });
 
   it("renders a non-interactive preview shell for drag overlay", () => {

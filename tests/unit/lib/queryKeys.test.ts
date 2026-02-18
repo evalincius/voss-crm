@@ -47,6 +47,27 @@ describe("query keys", () => {
     expect(key).toContain("organization_id:org-i");
   });
 
+  it("includes deal_id in interaction deal context keys", () => {
+    const key = interactionKeys.dealContext("org-i", "deal-1").queryKey;
+    expect(key).toContain("organization_id:org-i");
+    expect(key).toContain("deal_id:deal-1");
+    expect(key).toContain("deal-context");
+  });
+
+  it("includes person_id in interaction association options keys", () => {
+    const key = interactionKeys.associationOptions("org-i", "person-1").queryKey;
+    expect(key).toContain("organization_id:org-i");
+    expect(key).toContain("person_id:person-1");
+    expect(key).toContain("association-options");
+  });
+
+  it("includes product_id in interaction template options by product keys", () => {
+    const key = interactionKeys.templateOptionsByProduct("org-i", "prod-1").queryKey;
+    expect(key).toContain("organization_id:org-i");
+    expect(key).toContain("product_id:prod-1");
+    expect(key).toContain("template-options-by-product");
+  });
+
   it("includes organization_id in product list keys", () => {
     const key = productKeys.list("org-products", {
       search: "",
@@ -100,9 +121,37 @@ describe("query keys", () => {
   });
 
   it("includes organization_id in dashboard followUps keys", () => {
-    const key = dashboardKeys.followUps("org-dash").queryKey;
+    const key = dashboardKeys.followUps("org-dash", {
+      horizonDays: 7,
+      status: "all",
+      page: 1,
+      pageSize: 25,
+      customStart: null,
+      customEnd: null,
+    }).queryKey;
     expect(key).toContain("organization_id:org-dash");
     expect(key).toContain("followUps");
+  });
+
+  it("isolates dashboard followUps cache by params", () => {
+    const pageOne = dashboardKeys.followUps("org-dash", {
+      horizonDays: 7,
+      status: "all",
+      page: 1,
+      pageSize: 25,
+      customStart: null,
+      customEnd: null,
+    }).queryKey;
+    const pageTwo = dashboardKeys.followUps("org-dash", {
+      horizonDays: 14,
+      status: "upcoming",
+      page: 2,
+      pageSize: 25,
+      customStart: null,
+      customEnd: null,
+    }).queryKey;
+
+    expect(pageOne).not.toEqual(pageTwo);
   });
 
   it("includes threshold in dashboard staleDeals keys", () => {

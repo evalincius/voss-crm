@@ -10,6 +10,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { DealsPage } from "@/pages/DealsPage";
+import { FollowUpsPage } from "@/pages/FollowUpsPage";
 import { LibraryProductDetailPage } from "@/pages/LibraryProductDetailPage";
 import { LibraryTemplateDetailPage } from "@/pages/LibraryTemplateDetailPage";
 import { LibraryView } from "@/pages/LibraryView";
@@ -37,6 +38,7 @@ export const appRoutes: RouteObject[] = [
     ),
     children: [
       { path: ROUTES.DASHBOARD, element: <DashboardPage /> },
+      { path: ROUTES.FOLLOW_UPS, element: <FollowUpsPage /> },
       { path: ROUTES.PEOPLE, element: <PeoplePage /> },
       { path: ROUTES.PERSON_DETAIL, element: <PersonDetailPage /> },
       { path: ROUTES.CAMPAIGNS, element: <CampaignsPage /> },

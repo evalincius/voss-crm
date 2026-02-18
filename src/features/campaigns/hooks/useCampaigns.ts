@@ -32,7 +32,8 @@ import type {
   SyncCampaignTemplatesInput,
   UpdateCampaignInput,
 } from "@/features/campaigns/types";
-import { campaignKeys, dashboardKeys, dealKeys, peopleKeys } from "@/lib/queryKeys";
+import { invalidateDashboardForOrg } from "@/lib/dashboardInvalidation";
+import { campaignKeys, dealKeys, peopleKeys } from "@/lib/queryKeys";
 
 async function invalidateCampaignsForOrg(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -65,32 +66,6 @@ async function invalidatePeopleForOrg(
     predicate: (query) =>
       Array.isArray(query.queryKey) && query.queryKey.includes(`organization_id:${organizationId}`),
   });
-}
-
-async function invalidateDashboardForOrg(
-  queryClient: ReturnType<typeof useQueryClient>,
-  organizationId: string,
-) {
-  await Promise.all([
-    queryClient.invalidateQueries({
-      queryKey: dashboardKeys.followUps(organizationId).queryKey,
-    }),
-    queryClient.invalidateQueries({
-      queryKey: dashboardKeys.pipeline(organizationId).queryKey,
-    }),
-    queryClient.invalidateQueries({
-      queryKey: dashboardKeys.topCampaigns(organizationId).queryKey,
-    }),
-    queryClient.invalidateQueries({
-      queryKey: dashboardKeys.topProducts(organizationId).queryKey,
-    }),
-    queryClient.invalidateQueries({
-      queryKey: dashboardKeys.staleDeals._def,
-      predicate: (query) =>
-        Array.isArray(query.queryKey) &&
-        query.queryKey.includes(`organization_id:${organizationId}`),
-    }),
-  ]);
 }
 
 export function useCampaignsList(params: CampaignListParams | null) {
@@ -325,6 +300,7 @@ export function useCreateCampaign() {
     },
     onSuccess: async (campaign) => {
       await invalidateCampaignsForOrg(queryClient, campaign.organization_id);
+      await invalidateDashboardForOrg(queryClient, campaign.organization_id);
     },
   });
 }
@@ -343,6 +319,7 @@ export function useUpdateCampaign() {
     },
     onSuccess: async (campaign) => {
       await invalidateCampaignsForOrg(queryClient, campaign.organization_id);
+      await invalidateDashboardForOrg(queryClient, campaign.organization_id);
       await queryClient.invalidateQueries({
         queryKey: campaignKeys.detail(campaign.organization_id, campaign.id).queryKey,
       });
@@ -364,6 +341,7 @@ export function useArchiveCampaign() {
     },
     onSuccess: async (campaign) => {
       await invalidateCampaignsForOrg(queryClient, campaign.organization_id);
+      await invalidateDashboardForOrg(queryClient, campaign.organization_id);
       await queryClient.invalidateQueries({
         queryKey: campaignKeys.detail(campaign.organization_id, campaign.id).queryKey,
       });
@@ -385,6 +363,7 @@ export function useUnarchiveCampaign() {
     },
     onSuccess: async (campaign) => {
       await invalidateCampaignsForOrg(queryClient, campaign.organization_id);
+      await invalidateDashboardForOrg(queryClient, campaign.organization_id);
       await queryClient.invalidateQueries({
         queryKey: campaignKeys.detail(campaign.organization_id, campaign.id).queryKey,
       });
@@ -457,6 +436,7 @@ export function useAddPeopleToCampaign() {
       await queryClient.invalidateQueries({
         queryKey: campaignKeys.metrics(input.organizationId, input.campaignId).queryKey,
       });
+      await invalidateDashboardForOrg(queryClient, input.organizationId);
     },
   });
 }
@@ -480,6 +460,7 @@ export function useRemovePersonFromCampaign() {
       await queryClient.invalidateQueries({
         queryKey: campaignKeys.metrics(input.organizationId, input.campaignId).queryKey,
       });
+      await invalidateDashboardForOrg(queryClient, input.organizationId);
     },
   });
 }

@@ -52,6 +52,21 @@ export const interactionKeys = createQueryKeys("interactions", {
     `organization_id:${organizationId}`,
     `person_id:${personId}`,
   ],
+  dealContext: (organizationId: string, dealId: string) => [
+    `organization_id:${organizationId}`,
+    `deal_id:${dealId}`,
+    "deal-context",
+  ],
+  associationOptions: (organizationId: string, personId: string) => [
+    `organization_id:${organizationId}`,
+    `person_id:${personId}`,
+    "association-options",
+  ],
+  templateOptionsByProduct: (organizationId: string, productId: string) => [
+    `organization_id:${organizationId}`,
+    `product_id:${productId}`,
+    "template-options-by-product",
+  ],
 });
 
 export const productKeys = createQueryKeys("products", {
@@ -151,7 +166,17 @@ export const campaignKeys = createQueryKeys("campaigns", {
 });
 
 export const dashboardKeys = createQueryKeys("dashboard", {
-  followUps: (organizationId: string) => [`organization_id:${organizationId}`, "followUps"],
+  followUps: (
+    organizationId: string,
+    params: {
+      horizonDays: number;
+      status: "all" | "overdue" | "today" | "upcoming" | "custom";
+      page: number;
+      pageSize: number;
+      customStart: string | null;
+      customEnd: string | null;
+    },
+  ) => [`organization_id:${organizationId}`, "followUps", params],
   staleDeals: (organizationId: string, threshold: number) => [
     `organization_id:${organizationId}`,
     "staleDeals",

@@ -56,8 +56,8 @@ function emptyStringToNullNumber(value: unknown) {
 export const campaignFormSchema = z.object({
   name: z.string().trim().min(1, "Campaign name is required").max(160),
   type: z.enum(campaignTypeValues),
-  productIds: z.array(z.string()).default([]),
-  templateIds: z.array(z.string()).default([]),
+  productId: z.string().trim().min(1, "Project is required"),
+  templateId: z.preprocess(emptyStringToNull, z.guid().nullable().default(null)),
 });
 
 export type CampaignFormInput = z.input<typeof campaignFormSchema>;

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { invalidateDashboardForOrg } from "@/lib/dashboardInvalidation";
 import { supabase } from "@/lib/supabase";
 import { campaignKeys } from "@/lib/queryKeys";
 
@@ -116,6 +117,7 @@ export function AddToCampaignDialog({
       await queryClient.invalidateQueries({
         queryKey: campaignKeys.metrics(organizationId, selectedCampaignId).queryKey,
       });
+      await invalidateDashboardForOrg(queryClient, organizationId);
 
       onOpenChange(false);
       setSelectedCampaignId("");

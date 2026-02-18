@@ -2,10 +2,14 @@ import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/
 import {
   createInteraction,
   deleteInteraction,
+  getInteractionDealContext,
+  listInteractionAssociationOptions,
   listInteractionsByPerson,
+  listInteractionTemplateOptionsByProduct,
 } from "@/features/interactions/services/interactionsService";
 import type { CreateInteractionInput, InteractionOrderBy } from "@/features/interactions/types";
-import { interactionKeys, peopleKeys } from "@/lib/queryKeys";
+import { invalidateDashboardForOrg } from "@/lib/dashboardInvalidation";
+import { dealKeys, interactionKeys, peopleKeys } from "@/lib/queryKeys";
 
 export function usePersonInteractions(
   organizationId: string | null,
@@ -53,7 +57,86 @@ export function useCreateInteraction() {
       await queryClient.invalidateQueries({
         queryKey: peopleKeys.detail(interaction.organization_id, interaction.person_id).queryKey,
       });
+      if (interaction.deal_id) {
+        await queryClient.invalidateQueries({
+          queryKey: dealKeys.interactions(interaction.organization_id, interaction.deal_id)
+            .queryKey,
+        });
+      }
+      await invalidateDashboardForOrg(queryClient, interaction.organization_id);
     },
+  });
+}
+
+export function useInteractionDealContext(organizationId: string | null, dealId: string | null) {
+  return useQuery({
+    queryKey:
+      organizationId && dealId
+        ? interactionKeys.dealContext(organizationId, dealId).queryKey
+        : (["interactions", "deal-context", "disabled"] satisfies QueryKey),
+    queryFn: async () => {
+      if (!organizationId || !dealId) {
+        throw new Error("Organization and deal are required");
+      }
+
+      const result = await getInteractionDealContext(organizationId, dealId);
+      if (result.error) {
+        throw new Error(result.error);
+      }
+
+      return result.data;
+    },
+    enabled: !!organizationId && !!dealId,
+  });
+}
+
+export function useInteractionAssociationOptions(
+  organizationId: string | null,
+  personId: string | null,
+) {
+  return useQuery({
+    queryKey:
+      organizationId && personId
+        ? interactionKeys.associationOptions(organizationId, personId).queryKey
+        : (["interactions", "association-options", "disabled"] satisfies QueryKey),
+    queryFn: async () => {
+      if (!organizationId || !personId) {
+        throw new Error("Organization and person are required");
+      }
+
+      const result = await listInteractionAssociationOptions(organizationId, personId);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to load interaction options");
+      }
+
+      return result.data;
+    },
+    enabled: !!organizationId && !!personId,
+  });
+}
+
+export function useInteractionTemplateOptionsByProduct(
+  organizationId: string | null,
+  productId: string | null,
+) {
+  return useQuery({
+    queryKey:
+      organizationId && productId
+        ? interactionKeys.templateOptionsByProduct(organizationId, productId).queryKey
+        : (["interactions", "template-options-by-product", "disabled"] satisfies QueryKey),
+    queryFn: async () => {
+      if (!organizationId || !productId) {
+        throw new Error("Organization and product are required");
+      }
+
+      const result = await listInteractionTemplateOptionsByProduct(organizationId, productId);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to load templates");
+      }
+
+      return result.data;
+    },
+    enabled: !!organizationId && !!productId,
   });
 }
 
@@ -84,6 +167,7 @@ export function useDeleteInteraction() {
       await queryClient.invalidateQueries({
         queryKey: peopleKeys.detail(input.organizationId, input.personId).queryKey,
       });
+      await invalidateDashboardForOrg(queryClient, input.organizationId);
     },
   });
 }

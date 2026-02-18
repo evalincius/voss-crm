@@ -1,4 +1,13 @@
-export type { FollowUpItem, StaleDeal, PipelineStageCount, TopProduct, TopCampaign } from "./types";
+export type {
+  FollowUpItem,
+  FollowUpsStatus,
+  FollowUpsQueryParams,
+  PaginatedFollowUpsResult,
+  StaleDeal,
+  PipelineStageCount,
+  TopProduct,
+  TopCampaign,
+} from "./types";
 
 export {
   getFollowUpsDue,

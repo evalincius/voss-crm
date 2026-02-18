@@ -16,6 +16,7 @@ import type {
   DealStage,
   UpdateDealInput,
 } from "@/features/deals/types";
+import { invalidateDashboardForOrg } from "@/lib/dashboardInvalidation";
 import { dealKeys } from "@/lib/queryKeys";
 
 async function invalidateDealsForOrg(
@@ -159,6 +160,7 @@ export function useCreateDeal() {
     },
     onSuccess: async (deal) => {
       await invalidateDealsForOrg(queryClient, deal.organization_id);
+      await invalidateDashboardForOrg(queryClient, deal.organization_id);
       await queryClient.invalidateQueries({
         queryKey: dealKeys.byPerson(deal.organization_id, deal.person_id).queryKey,
       });
@@ -180,6 +182,7 @@ export function useUpdateDeal() {
     },
     onSuccess: async (deal) => {
       await invalidateDealsForOrg(queryClient, deal.organization_id);
+      await invalidateDashboardForOrg(queryClient, deal.organization_id);
       await queryClient.invalidateQueries({
         queryKey: dealKeys.detail(deal.organization_id, deal.id).queryKey,
       });
@@ -248,6 +251,7 @@ export function useUpdateDealStage() {
     },
     onSettled: async (_data, _error, input) => {
       await invalidateDealsForOrg(queryClient, input.organizationId);
+      await invalidateDashboardForOrg(queryClient, input.organizationId);
     },
   });
 }

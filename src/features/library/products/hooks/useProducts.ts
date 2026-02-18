@@ -14,6 +14,7 @@ import type {
   ProductListParams,
   UpdateProductInput,
 } from "@/features/library/products/types";
+import { invalidateDashboardForOrg } from "@/lib/dashboardInvalidation";
 import { productKeys } from "@/lib/queryKeys";
 
 async function invalidateProductsForOrg(
@@ -140,6 +141,7 @@ export function useCreateProduct() {
     },
     onSuccess: async (product) => {
       await invalidateProductsForOrg(queryClient, product.organization_id);
+      await invalidateDashboardForOrg(queryClient, product.organization_id);
     },
   });
 }
@@ -158,6 +160,7 @@ export function useUpdateProduct() {
     },
     onSuccess: async (product) => {
       await invalidateProductsForOrg(queryClient, product.organization_id);
+      await invalidateDashboardForOrg(queryClient, product.organization_id);
       await queryClient.invalidateQueries({
         queryKey: productKeys.detail(product.organization_id, product.id).queryKey,
       });
@@ -182,6 +185,7 @@ export function useArchiveProduct() {
     },
     onSuccess: async (product) => {
       await invalidateProductsForOrg(queryClient, product.organization_id);
+      await invalidateDashboardForOrg(queryClient, product.organization_id);
       await queryClient.invalidateQueries({
         queryKey: productKeys.detail(product.organization_id, product.id).queryKey,
       });
@@ -206,6 +210,7 @@ export function useUnarchiveProduct() {
     },
     onSuccess: async (product) => {
       await invalidateProductsForOrg(queryClient, product.organization_id);
+      await invalidateDashboardForOrg(queryClient, product.organization_id);
       await queryClient.invalidateQueries({
         queryKey: productKeys.detail(product.organization_id, product.id).queryKey,
       });

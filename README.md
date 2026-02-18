@@ -40,6 +40,12 @@ npm run dev
 supabase stop
 ```
 
+8. To apply supabase migrations in local:
+
+```bash
+ supabase migration up
+```
+
 ## How to Use PRD to Deliverable Prompts
 
 1. How to use implement-deliverable prompt

@@ -714,9 +714,61 @@ export type Database = {
         Args: { invitation_token: string };
         Returns: Json;
       };
+      bulk_convert_campaign_members_to_deals: {
+        Args: {
+          p_campaign_id: string;
+          p_currency?: string;
+          p_deal_notes?: string;
+          p_duplicate_strategy?: string;
+          p_interaction_summary?: string;
+          p_interaction_type?: Database["public"]["Enums"]["interaction_type"];
+          p_next_step_at?: string;
+          p_organization_id: string;
+          p_person_ids: string[];
+          p_product_id: string;
+          p_value?: number;
+        };
+        Returns: Json;
+      };
+      convert_campaign_lead: {
+        Args: {
+          p_campaign_id: string;
+          p_currency?: string;
+          p_deal_notes?: string;
+          p_email?: string;
+          p_full_name?: string;
+          p_interaction_summary?: string;
+          p_interaction_type?: Database["public"]["Enums"]["interaction_type"];
+          p_lifecycle?: Database["public"]["Enums"]["person_lifecycle"];
+          p_mode: string;
+          p_next_step_at?: string;
+          p_notes?: string;
+          p_organization_id: string;
+          p_person_id?: string;
+          p_phone?: string;
+          p_product_id?: string;
+          p_value?: number;
+        };
+        Returns: Json;
+      };
       create_organization_with_membership: {
         Args: { org_logo_url?: string; org_name: string; org_slug?: string };
         Returns: Json;
+      };
+      preview_bulk_campaign_deal_duplicates: {
+        Args: {
+          p_campaign_id: string;
+          p_organization_id: string;
+          p_person_ids: string[];
+          p_product_id: string;
+        };
+        Returns: {
+          duplicate_created_at: string;
+          duplicate_deal_id: string;
+          duplicate_stage: Database["public"]["Enums"]["deal_stage"];
+          full_name: string;
+          person_id: string;
+        }[];
       };
       user_current_organization_id: {
         Args: Record<PropertyKey, never>;

@@ -1,4 +1,5 @@
 import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { formatDistanceToNow } from "date-fns";
 import { GripVertical, MoreVertical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,17 +19,48 @@ interface DealCardProps {
   onStageChange: (dealId: string, stage: DealStage) => void;
 }
 
+interface DealCardMetaProps {
+  deal: DealCardData;
+}
+
+function DealCardMeta({ deal }: DealCardMetaProps) {
+  return (
+    <>
+      <Badge variant="secondary" className="text-xs">
+        {deal.product_name}
+      </Badge>
+
+      <div className="flex items-center justify-between text-xs">
+        {deal.value != null ? (
+          <span className="text-text-primary font-medium tabular-nums">
+            {deal.currency ?? ""} {Number(deal.value).toLocaleString()}
+          </span>
+        ) : (
+          <span />
+        )}
+
+        {deal.next_step_at ? (
+          <span className="text-text-secondary">
+            Next: {formatDistanceToNow(new Date(deal.next_step_at), { addSuffix: true })}
+          </span>
+        ) : null}
+      </div>
+
+      <p className="text-text-secondary text-xs tabular-nums">
+        {formatDistanceToNow(new Date(deal.updated_at), { addSuffix: true })}
+      </p>
+    </>
+  );
+}
+
 export function DealCard({ deal, onSelect, onStageChange }: DealCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: deal.id,
     data: { deal },
   });
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-      }
-    : undefined;
+  const style =
+    isDragging || !transform ? undefined : { transform: CSS.Transform.toString(transform) };
 
   const otherStages = DEAL_STAGE_VALUES.filter((s) => s !== deal.stage);
 
@@ -36,8 +68,8 @@ export function DealCard({ deal, onSelect, onStageChange }: DealCardProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className={`card-surface bg-bg-surface cursor-pointer space-y-2 rounded-md border p-3 ${
-        isDragging ? "opacity-50" : ""
+      className={`card-surface bg-bg-surface cursor-pointer space-y-2 rounded-md border p-3 transition-shadow ${
+        isDragging ? "opacity-0" : ""
       }`}
       onClick={() => onSelect(deal.id)}
       role="button"
@@ -85,29 +117,29 @@ export function DealCard({ deal, onSelect, onStageChange }: DealCardProps) {
         </DropdownMenu>
       </div>
 
-      <Badge variant="secondary" className="text-xs">
-        {deal.product_name}
-      </Badge>
+      <DealCardMeta deal={deal} />
+    </div>
+  );
+}
 
-      <div className="flex items-center justify-between text-xs">
-        {deal.value != null ? (
-          <span className="text-text-primary font-medium tabular-nums">
-            {deal.currency ?? ""} {Number(deal.value).toLocaleString()}
-          </span>
-        ) : (
-          <span />
-        )}
+interface DealCardPreviewProps {
+  deal: DealCardData;
+}
 
-        {deal.next_step_at ? (
-          <span className="text-text-secondary">
-            Next: {formatDistanceToNow(new Date(deal.next_step_at), { addSuffix: true })}
+export function DealCardPreview({ deal }: DealCardPreviewProps) {
+  return (
+    <div className="card-surface bg-bg-surface shadow-soft-sm pointer-events-none space-y-2 rounded-md border p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="text-text-secondary shrink-0" aria-hidden>
+            <GripVertical className="h-4 w-4" />
           </span>
-        ) : null}
+          <span className="text-text-primary truncate text-sm font-medium">{deal.person_name}</span>
+        </div>
+        <span className="h-6 w-6 shrink-0" aria-hidden />
       </div>
 
-      <p className="text-text-secondary text-xs tabular-nums">
-        {formatDistanceToNow(new Date(deal.updated_at), { addSuffix: true })}
-      </p>
+      <DealCardMeta deal={deal} />
     </div>
   );
 }

@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/
 import {
   addPeopleToCampaign,
   archiveCampaign,
+  bulkConvertCampaignMembersToDeals,
+  convertCampaignLead,
   createCampaign,
   getCampaignById,
   getCampaignLinkedProductIds,
@@ -11,6 +13,7 @@ import {
   listCampaignMembers,
   listCampaignOptions,
   listCampaigns,
+  previewBulkCampaignDealDuplicates,
   removePersonFromCampaign,
   syncCampaignProducts,
   syncCampaignTemplates,
@@ -19,14 +22,17 @@ import {
 } from "@/features/campaigns/services/campaignsService";
 import type {
   AddPeopleToCampaignInput,
+  BulkConvertCampaignMembersToDealsInput,
   CampaignListParams,
+  ConvertCampaignLeadInput,
+  PreviewBulkCampaignDealDuplicatesInput,
   CreateCampaignInput,
   RemovePersonFromCampaignInput,
   SyncCampaignProductsInput,
   SyncCampaignTemplatesInput,
   UpdateCampaignInput,
 } from "@/features/campaigns/types";
-import { campaignKeys } from "@/lib/queryKeys";
+import { campaignKeys, dashboardKeys, dealKeys, peopleKeys } from "@/lib/queryKeys";
 
 async function invalidateCampaignsForOrg(
   queryClient: ReturnType<typeof useQueryClient>,
@@ -37,6 +43,54 @@ async function invalidateCampaignsForOrg(
     predicate: (query) =>
       Array.isArray(query.queryKey) && query.queryKey.includes(`organization_id:${organizationId}`),
   });
+}
+
+async function invalidateDealsForOrg(
+  queryClient: ReturnType<typeof useQueryClient>,
+  organizationId: string,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: dealKeys.list._def,
+    predicate: (query) =>
+      Array.isArray(query.queryKey) && query.queryKey.includes(`organization_id:${organizationId}`),
+  });
+}
+
+async function invalidatePeopleForOrg(
+  queryClient: ReturnType<typeof useQueryClient>,
+  organizationId: string,
+) {
+  await queryClient.invalidateQueries({
+    queryKey: peopleKeys.list._def,
+    predicate: (query) =>
+      Array.isArray(query.queryKey) && query.queryKey.includes(`organization_id:${organizationId}`),
+  });
+}
+
+async function invalidateDashboardForOrg(
+  queryClient: ReturnType<typeof useQueryClient>,
+  organizationId: string,
+) {
+  await Promise.all([
+    queryClient.invalidateQueries({
+      queryKey: dashboardKeys.followUps(organizationId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: dashboardKeys.pipeline(organizationId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: dashboardKeys.topCampaigns(organizationId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: dashboardKeys.topProducts(organizationId).queryKey,
+    }),
+    queryClient.invalidateQueries({
+      queryKey: dashboardKeys.staleDeals._def,
+      predicate: (query) =>
+        Array.isArray(query.queryKey) &&
+        query.queryKey.includes(`organization_id:${organizationId}`),
+    }),
+  ]);
 }
 
 export function useCampaignsList(params: CampaignListParams | null) {
@@ -227,6 +281,36 @@ export function useCampaignOptions(organizationId: string | null) {
   });
 }
 
+export function useBulkCampaignDealDuplicatePreview(
+  input: PreviewBulkCampaignDealDuplicatesInput | null,
+) {
+  return useQuery({
+    queryKey: input
+      ? [
+          "campaigns",
+          "bulk-duplicate-preview",
+          `organization_id:${input.organizationId}`,
+          `campaign_id:${input.campaignId}`,
+          `product_id:${input.productId}`,
+          [...input.personIds].sort(),
+        ]
+      : (["campaigns", "bulk-duplicate-preview", "disabled"] satisfies QueryKey),
+    queryFn: async () => {
+      if (!input) {
+        throw new Error("Preview input is required");
+      }
+
+      const result = await previewBulkCampaignDealDuplicates(input);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to preview duplicates");
+      }
+
+      return result.data;
+    },
+    enabled: !!input,
+  });
+}
+
 export function useCreateCampaign() {
   const queryClient = useQueryClient();
 
@@ -396,6 +480,93 @@ export function useRemovePersonFromCampaign() {
       await queryClient.invalidateQueries({
         queryKey: campaignKeys.metrics(input.organizationId, input.campaignId).queryKey,
       });
+    },
+  });
+}
+
+export function useConvertCampaignLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: ConvertCampaignLeadInput) => {
+      const result = await convertCampaignLead(input);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to convert lead");
+      }
+
+      return { input, result: result.data };
+    },
+    onSuccess: async ({ input, result }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: campaignKeys.members(input.organizationId, input.campaignId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: campaignKeys.metrics(input.organizationId, input.campaignId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: campaignKeys.detail(input.organizationId, input.campaignId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: campaignKeys.byPerson(input.organizationId, result.person_id).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: dealKeys.byPerson(input.organizationId, result.person_id).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: peopleKeys.detail(input.organizationId, result.person_id).queryKey,
+        }),
+      ]);
+
+      await invalidatePeopleForOrg(queryClient, input.organizationId);
+      await invalidateDealsForOrg(queryClient, input.organizationId);
+      await invalidateDashboardForOrg(queryClient, input.organizationId);
+    },
+  });
+}
+
+export function useBulkConvertCampaignMembersToDeals() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: BulkConvertCampaignMembersToDealsInput) => {
+      const result = await bulkConvertCampaignMembersToDeals(input);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to convert members");
+      }
+
+      return { input, result: result.data };
+    },
+    onSuccess: async ({ input, result }) => {
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: campaignKeys.members(input.organizationId, input.campaignId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: campaignKeys.metrics(input.organizationId, input.campaignId).queryKey,
+        }),
+        queryClient.invalidateQueries({
+          queryKey: campaignKeys.detail(input.organizationId, input.campaignId).queryKey,
+        }),
+      ]);
+
+      for (const row of result.results) {
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: campaignKeys.byPerson(input.organizationId, row.person_id).queryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: dealKeys.byPerson(input.organizationId, row.person_id).queryKey,
+          }),
+          queryClient.invalidateQueries({
+            queryKey: peopleKeys.detail(input.organizationId, row.person_id).queryKey,
+          }),
+        ]);
+      }
+
+      await invalidatePeopleForOrg(queryClient, input.organizationId);
+      await invalidateDealsForOrg(queryClient, input.organizationId);
+      await invalidateDashboardForOrg(queryClient, input.organizationId);
     },
   });
 }

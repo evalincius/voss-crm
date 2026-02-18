@@ -89,9 +89,15 @@ export function DealsPage() {
   }, []);
 
   const handleStageChange = useCallback(
-    (dealId: string, stage: DealStage) => {
+    async (dealId: string, stage: DealStage) => {
       if (!organizationId) return;
-      updateStageMutation.mutate({ dealId, stage, organizationId });
+
+      try {
+        await updateStageMutation.mutateAsync({ dealId, stage, organizationId });
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Failed to update deal stage");
+        throw error;
+      }
     },
     [organizationId, updateStageMutation],
   );

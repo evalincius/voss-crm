@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dndState = vi.hoisted(() => ({
@@ -172,5 +172,25 @@ describe("DealsBoard", () => {
     });
 
     expect(within(overlay).queryByText("Cancel Target")).not.toBeInTheDocument();
+  });
+
+  it("suppresses trailing click selection immediately after drag drop", () => {
+    const deal = createDeal({ person_name: "Do Not Open" });
+    const onSelectDeal = vi.fn();
+    const onStageChange = vi.fn(() => new Promise<void>(() => {}));
+
+    render(<DealsBoard deals={[deal]} onSelectDeal={onSelectDeal} onStageChange={onStageChange} />);
+
+    act(() => {
+      dndState.contextProps.onDragEnd?.({
+        active: { id: deal.id },
+        over: { id: "interested" },
+      });
+    });
+
+    const interestedLane = screen.getByRole("group", { name: /Interested stage/i });
+    fireEvent.click(within(interestedLane).getByText("Do Not Open"));
+
+    expect(onSelectDeal).not.toHaveBeenCalled();
   });
 });

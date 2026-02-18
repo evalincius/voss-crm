@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -26,10 +26,12 @@ const dropAnimation: DropAnimation = {
   duration: 200,
   easing: "cubic-bezier(0.22, 1, 0.36, 1)",
 };
+const SELECT_SUPPRESSION_MS = 300;
 
 export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardProps) {
   const [activeDeal, setActiveDeal] = useState<DealCardData | null>(null);
   const [pendingStages, setPendingStages] = useState<Record<string, DealStage>>({});
+  const suppressedSelectRef = useRef<{ dealId: string; expiresAt: number } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -98,6 +100,11 @@ export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardPro
 
     if (!DEAL_STAGE_VALUES.includes(targetStage)) return;
 
+    suppressedSelectRef.current = {
+      dealId,
+      expiresAt: Date.now() + SELECT_SUPPRESSION_MS,
+    };
+
     const currentDeal = displayDeals.find((d) => d.id === dealId);
     if (currentDeal && currentDeal.stage !== targetStage) {
       setPendingStages((current) => ({ ...current, [dealId]: targetStage }));
@@ -138,6 +145,23 @@ export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardPro
     setActiveDeal(null);
   }
 
+  function handleSelectDeal(dealId: string) {
+    const suppressedSelect = suppressedSelectRef.current;
+    if (
+      suppressedSelect &&
+      suppressedSelect.dealId === dealId &&
+      Date.now() < suppressedSelect.expiresAt
+    ) {
+      return;
+    }
+
+    if (suppressedSelect && Date.now() >= suppressedSelect.expiresAt) {
+      suppressedSelectRef.current = null;
+    }
+
+    onSelectDeal(dealId);
+  }
+
   return (
     <DndContext
       sensors={sensors}
@@ -156,7 +180,7 @@ export function DealsBoard({ deals, onSelectDeal, onStageChange }: DealsBoardPro
             key={stage}
             stage={stage}
             deals={dealsByStage[stage]}
-            onSelectDeal={onSelectDeal}
+            onSelectDeal={handleSelectDeal}
             onStageChange={onStageChange}
           />
         ))}

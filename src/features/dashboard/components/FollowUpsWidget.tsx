@@ -43,7 +43,7 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
       {query.isLoading ? (
         <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 w-full rounded-md" />
+            <Skeleton key={i} className="h-10 w-full rounded-md" />
           ))}
         </div>
       ) : null}
@@ -67,9 +67,9 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
           {previewItems.map((item) => (
             <div
               key={`${item.source}-${item.id}`}
-              className="hover:bg-bg-surface-hover/70 grid grid-cols-[2rem_minmax(0,1fr)_auto] items-stretch gap-2.5 rounded-md py-2 transition-colors first:pt-0 last:pb-0"
+              className="hover:bg-bg-surface-hover/70 grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-stretch gap-2 rounded-md py-1.5 transition-colors first:pt-0 last:pb-0"
             >
-              <div className="flex w-8 items-center justify-center self-stretch">
+              <div className="flex w-7 items-center justify-center self-stretch">
                 {item.source === "deal" ? (
                   <BriefcaseBusiness className="text-primary h-4 w-4" aria-hidden />
                 ) : (
@@ -90,7 +90,7 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
                   </Badge>
                 </div>
 
-                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                <div className="mt-px flex flex-wrap items-center gap-0.5">
                   {item.source === "deal" && item.deal_product_name ? (
                     <Badge variant="secondary" className="text-xs">
                       {item.deal_product_name}
@@ -109,7 +109,7 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
                 </div>
 
                 {item.source === "interaction" && item.interaction_summary ? (
-                  <p className="text-text-muted mt-0.5 truncate text-xs">
+                  <p className="text-text-muted mt-px truncate text-xs">
                     {item.interaction_summary}
                   </p>
                 ) : null}
@@ -126,7 +126,7 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
                   <button
                     type="button"
                     onClick={() => onSelectDeal(item.deal_id)}
-                    className="text-primary hover:bg-bg-surface-hover focus-visible:outline-ring mt-1 inline-flex h-8 items-center rounded-md px-2 text-xs font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                    className="text-primary hover:bg-bg-surface-hover focus-visible:outline-ring mt-0.5 inline-flex h-7 items-center rounded-md px-1.5 text-xs font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
                     aria-label={
                       item.source === "deal"
                         ? `View deal for ${item.person_name}`

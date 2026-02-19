@@ -1,17 +1,21 @@
 import { useMutation, useQuery, useQueryClient, type QueryKey } from "@tanstack/react-query";
 import {
+  commitTemplateMarkdownImport,
   createTemplate,
   getTemplateById,
   getTemplateLinkedProductIds,
   getTemplateUsedInSummary,
   listTemplateProductOptions,
   listTemplates,
+  previewTemplateMarkdownImport,
   setTemplateStatus,
   syncTemplateProducts,
   updateTemplate,
 } from "@/features/library/templates/services/templatesService";
 import type {
+  CommitTemplateMarkdownImportInput,
   CreateTemplateInput,
+  PreviewTemplateMarkdownImportInput,
   SyncTemplateProductsInput,
   TemplateListParams,
   TemplateStatus,
@@ -31,6 +35,18 @@ async function invalidateTemplatesForOrg(
 
   await queryClient.invalidateQueries({
     queryKey: templateKeys.productOptions._def,
+    predicate: (query) =>
+      Array.isArray(query.queryKey) && query.queryKey.includes(`organization_id:${organizationId}`),
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: templateKeys.detail._def,
+    predicate: (query) =>
+      Array.isArray(query.queryKey) && query.queryKey.includes(`organization_id:${organizationId}`),
+  });
+
+  await queryClient.invalidateQueries({
+    queryKey: templateKeys.productLinks._def,
     predicate: (query) =>
       Array.isArray(query.queryKey) && query.queryKey.includes(`organization_id:${organizationId}`),
   });
@@ -246,6 +262,41 @@ export function useSyncTemplateProducts() {
           Array.isArray(query.queryKey) &&
           query.queryKey.includes(`organization_id:${input.organizationId}`),
       });
+    },
+  });
+}
+
+export function usePreviewTemplateMarkdownImport() {
+  return useMutation({
+    mutationFn: async (input: PreviewTemplateMarkdownImportInput) => {
+      const result = await previewTemplateMarkdownImport(input);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to preview markdown import");
+      }
+
+      return result.data;
+    },
+  });
+}
+
+export function useCommitTemplateMarkdownImport() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: CommitTemplateMarkdownImportInput) => {
+      const result = await commitTemplateMarkdownImport(input);
+      if (result.error || !result.data) {
+        throw new Error(result.error ?? "Failed to commit markdown import");
+      }
+
+      return { input, result: result.data };
+    },
+    onSuccess: async ({ input, result }) => {
+      if (!result.applied) {
+        return;
+      }
+
+      await invalidateTemplatesForOrg(queryClient, input.organizationId);
     },
   });
 }

@@ -1,9 +1,13 @@
 import { supabase } from "@/lib/supabase";
 import type { ApiResult } from "@/types";
 import type {
+  CommitTemplateMarkdownImportInput,
   CreateTemplateInput,
+  PreviewTemplateMarkdownImportInput,
   SyncTemplateProductsInput,
   Template,
+  TemplateMarkdownImportCommitResult,
+  TemplateMarkdownImportPreviewResult,
   TemplateListParams,
   TemplateProductOption,
   TemplateStatus,
@@ -274,6 +278,127 @@ export async function getTemplateUsedInSummary(
       interactionsWithDealCount: interactionsWithDealCount ?? 0,
       campaignCount: campaignCount ?? 0,
       dealsIndirectCount: interactionsWithDealCount ?? 0,
+    },
+    error: null,
+  };
+}
+
+export async function previewTemplateMarkdownImport(
+  input: PreviewTemplateMarkdownImportInput,
+): Promise<ApiResult<TemplateMarkdownImportPreviewResult>> {
+  const args = {
+    p_organization_id: input.organizationId,
+    p_product_id: input.productId,
+    p_rows: input.rows.map((row) => ({
+      row_index: row.rowIndex,
+      source_id: row.sourceId,
+      file_name: row.fileName,
+      title: row.title,
+      category: row.category,
+      status: row.status,
+      body: row.body,
+    })),
+  };
+
+  const { data, error } = await supabase.rpc("preview_bulk_template_markdown_import", args);
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  if (!data || typeof data !== "object") {
+    return { data: null, error: "Preview returned an invalid response" };
+  }
+
+  const payload = data as {
+    total_requested?: number;
+    valid_rows?: number;
+    errors?: number;
+    create_count?: number;
+    rows?: unknown;
+  };
+  const rows = Array.isArray(payload.rows) ? payload.rows : [];
+
+  return {
+    data: {
+      total_requested: payload.total_requested ?? 0,
+      valid_rows: payload.valid_rows ?? 0,
+      errors: payload.errors ?? 0,
+      create_count: payload.create_count ?? 0,
+      rows: rows.map((row) => ({
+        row_index: (row as { row_index: number }).row_index,
+        source_id: (row as { source_id: string | null }).source_id,
+        file_name: (row as { file_name: string }).file_name,
+        title: (row as { title: string }).title,
+        category: (row as { category: string }).category,
+        status: (row as { status: string }).status,
+        action: (row as { action: "create" | "error" }).action,
+        template_id: (row as { template_id: string | null }).template_id,
+        resolved_product_ids: (row as { resolved_product_ids: string[] }).resolved_product_ids,
+        messages: (row as { messages: string[] }).messages,
+      })),
+    },
+    error: null,
+  };
+}
+
+export async function commitTemplateMarkdownImport(
+  input: CommitTemplateMarkdownImportInput,
+): Promise<ApiResult<TemplateMarkdownImportCommitResult>> {
+  const args = {
+    p_organization_id: input.organizationId,
+    p_product_id: input.productId,
+    p_rows: input.rows.map((row) => ({
+      row_index: row.rowIndex,
+      source_id: row.sourceId,
+      file_name: row.fileName,
+      title: row.title,
+      category: row.category,
+      status: row.status,
+      body: row.body,
+    })),
+    p_commit_mode: input.commitMode,
+  };
+
+  const { data, error } = await supabase.rpc("commit_bulk_template_markdown_import", args);
+
+  if (error) {
+    return { data: null, error: error.message };
+  }
+
+  if (!data || typeof data !== "object") {
+    return { data: null, error: "Commit returned an invalid response" };
+  }
+
+  const payload = data as {
+    mode?: "partial" | "abort_all";
+    applied?: boolean;
+    total_requested?: number;
+    created?: number;
+    failed?: number;
+    aborted?: number;
+    rows?: unknown;
+  };
+  const rows = Array.isArray(payload.rows) ? payload.rows : [];
+
+  return {
+    data: {
+      mode: payload.mode ?? input.commitMode,
+      applied: payload.applied ?? false,
+      total_requested: payload.total_requested ?? 0,
+      created: payload.created ?? 0,
+      failed: payload.failed ?? 0,
+      aborted: payload.aborted ?? 0,
+      rows: rows.map((row) => ({
+        row_index: (row as { row_index: number }).row_index,
+        source_id: (row as { source_id: string | null }).source_id,
+        file_name: (row as { file_name: string }).file_name,
+        title: (row as { title: string }).title,
+        dry_run_action: (row as { dry_run_action: "create" | "error" }).dry_run_action,
+        action: (row as { action: "created" | "error" | "aborted" }).action,
+        template_id: (row as { template_id: string | null }).template_id,
+        messages: (row as { messages: string[] }).messages,
+      })),
     },
     error: null,
   };

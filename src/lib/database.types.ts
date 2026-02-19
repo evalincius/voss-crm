@@ -730,6 +730,15 @@ export type Database = {
         };
         Returns: Json;
       };
+      commit_bulk_template_markdown_import: {
+        Args: {
+          p_commit_mode?: string;
+          p_organization_id: string;
+          p_product_id: string;
+          p_rows: Json;
+        };
+        Returns: Json;
+      };
       convert_campaign_lead: {
         Args: {
           p_campaign_id: string;
@@ -769,6 +778,10 @@ export type Database = {
           full_name: string;
           person_id: string;
         }[];
+      };
+      preview_bulk_template_markdown_import: {
+        Args: { p_organization_id: string; p_product_id: string; p_rows: Json };
+        Returns: Json;
       };
       user_current_organization_id: {
         Args: Record<PropertyKey, never>;

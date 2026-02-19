@@ -27,6 +27,7 @@ import {
   useTemplatesList,
 } from "@/features/library/templates/hooks/useTemplates";
 import { TemplateFormDialog } from "@/features/library/templates/components/TemplateFormDialog";
+import { TemplateMarkdownImportDialog } from "@/features/library/templates/components/TemplateMarkdownImportDialog";
 import type {
   Template,
   TemplateSort,
@@ -103,6 +104,7 @@ export function TemplatesListView({
   const sort = parseSort(searchParams.get("sort"));
   const productId = parseProductFilter(searchParams.get("product_id"));
   const [isCreateOpen, setIsCreateOpen] = useState(quickAddIntent === QUICK_ADD_INTENTS.TEMPLATE);
+  const [isImportOpen, setIsImportOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
   const params = useMemo(
@@ -183,9 +185,14 @@ export function TemplatesListView({
           </p>
         </div>
 
-        <Button type="button" onClick={() => setIsCreateOpen(true)}>
-          Add Template
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="secondary" onClick={() => setIsImportOpen(true)}>
+            Import Markdown
+          </Button>
+          <Button type="button" className="text-black" onClick={() => setIsCreateOpen(true)}>
+            Add Template
+          </Button>
+        </div>
       </div>
 
       {quickAddIntent === QUICK_ADD_INTENTS.TEMPLATE ? (
@@ -330,6 +337,12 @@ export function TemplatesListView({
         onOpenChange={setIsCreateOpen}
         organizationId={organizationId}
         userId={userId}
+      />
+
+      <TemplateMarkdownImportDialog
+        open={isImportOpen}
+        onOpenChange={setIsImportOpen}
+        organizationId={organizationId}
       />
 
       {editingTemplate ? (

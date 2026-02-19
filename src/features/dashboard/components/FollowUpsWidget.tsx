@@ -1,6 +1,6 @@
 import { Link } from "react-router";
-import { formatDistanceToNow } from "date-fns";
-import { CalendarClock } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
+import { BriefcaseBusiness, CalendarClock, MessageSquareText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DEAL_STAGE_LABELS, ROUTES } from "@/lib/constants";
@@ -67,55 +67,76 @@ export function FollowUpsWidget({ organizationId, onSelectDeal }: FollowUpsWidge
           {previewItems.map((item) => (
             <div
               key={`${item.source}-${item.id}`}
-              className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+              className="hover:bg-bg-surface-hover/70 grid grid-cols-[2rem_minmax(0,1fr)_auto] items-stretch gap-2.5 rounded-md py-2 transition-colors first:pt-0 last:pb-0"
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
+              <div className="flex w-8 items-center justify-center self-stretch">
+                {item.source === "deal" ? (
+                  <BriefcaseBusiness className="text-primary h-4 w-4" aria-hidden />
+                ) : (
+                  <MessageSquareText className="text-text-secondary h-4 w-4" aria-hidden />
+                )}
+              </div>
+
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
                   <Link
                     to={`${ROUTES.PEOPLE}/${item.person_id}`}
                     className="text-primary truncate text-sm font-medium hover:underline"
                   >
                     {item.person_name}
                   </Link>
-                  <div className="flex shrink-0 items-center gap-1">
-                    {item.source === "deal" && item.deal_product_name ? (
-                      <Badge variant="secondary" className="text-xs">
-                        {item.deal_product_name}
-                      </Badge>
-                    ) : null}
-                    {item.source === "deal" && item.deal_stage ? (
-                      <Badge variant="outline" className="text-xs">
-                        {DEAL_STAGE_LABELS[item.deal_stage as DealStage] ?? item.deal_stage}
-                      </Badge>
-                    ) : null}
-                    {item.source === "interaction" && item.interaction_type ? (
-                      <Badge variant="outline" className="text-xs capitalize">
-                        {item.interaction_type}
-                      </Badge>
-                    ) : null}
-                  </div>
+                  <Badge variant="outline" className="shrink-0 text-[11px]">
+                    {item.source === "deal" ? "Deal" : "Interaction"}
+                  </Badge>
                 </div>
-                <div className="mt-0.5 flex items-center gap-2">
-                  {item.source === "interaction" && item.interaction_summary ? (
-                    <span className="text-text-muted truncate text-xs">
-                      {item.interaction_summary}
-                    </span>
+
+                <div className="mt-0.5 flex flex-wrap items-center gap-1">
+                  {item.source === "deal" && item.deal_product_name ? (
+                    <Badge variant="secondary" className="text-xs">
+                      {item.deal_product_name}
+                    </Badge>
                   ) : null}
-                  {item.source === "deal" && item.deal_id ? (
-                    <button
-                      type="button"
-                      onClick={() => onSelectDeal(item.deal_id!)}
-                      className="text-primary text-xs hover:underline"
-                      aria-label={`View deal for ${item.person_name}`}
-                    >
-                      View deal
-                    </button>
+                  {item.source === "deal" && item.deal_stage ? (
+                    <Badge variant="outline" className="text-xs">
+                      {DEAL_STAGE_LABELS[item.deal_stage as DealStage] ?? item.deal_stage}
+                    </Badge>
+                  ) : null}
+                  {item.source === "interaction" && item.interaction_type ? (
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {item.interaction_type}
+                    </Badge>
                   ) : null}
                 </div>
+
+                {item.source === "interaction" && item.interaction_summary ? (
+                  <p className="text-text-muted mt-0.5 truncate text-xs">
+                    {item.interaction_summary}
+                  </p>
+                ) : null}
               </div>
-              <span className="text-text-muted shrink-0 text-xs tabular-nums">
-                {formatDistanceToNow(new Date(item.next_step_at), { addSuffix: true })}
-              </span>
+
+              <div className="flex shrink-0 flex-col items-end text-right">
+                <p className="text-text-secondary text-xs tabular-nums">
+                  {formatDistanceToNow(new Date(item.next_step_at), { addSuffix: true })}
+                </p>
+                <p className="text-text-muted text-[11px] tabular-nums">
+                  {format(new Date(item.next_step_at), "MMM d, HH:mm")}
+                </p>
+                {item.deal_id ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectDeal(item.deal_id)}
+                    className="text-primary hover:bg-bg-surface-hover focus-visible:outline-ring mt-1 inline-flex h-8 items-center rounded-md px-2 text-xs font-medium hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+                    aria-label={
+                      item.source === "deal"
+                        ? `View deal for ${item.person_name}`
+                        : `View linked deal for ${item.person_name}`
+                    }
+                  >
+                    View deal
+                  </button>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>
